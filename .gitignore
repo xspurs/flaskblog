@@ -1,0 +1,4 @@
+.idea
+*.pyc
+test_flaskr.py
+schema.sql

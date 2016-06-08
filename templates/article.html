@@ -1,0 +1,226 @@
+{% extends "example.html" %}
+{% block title %}
+    文章详情
+{% endblock %}
+
+<!-- CSS/JS Beginning -->
+{% block head %}
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/github-markdown.css') }}">
+    <style>
+        .markdown-body {
+            box-sizing: border-box;
+            min-width: 200px;
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 45px;
+        }
+    </style>
+    <script src="{{ url_for('static', filename='js/lib/vue.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/lib/jquery-1.11.2.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/lib/vue-strap.js') }}"></script>
+    <script>
+        window.onload = function() {
+            //$('.markdown-body').html('<code>class Person(object):</code>')
+            Vue.debug = true
+            var vm = new Vue({
+                el: '#app',
+                data: {
+                    comment: {},
+                    showTop: false,
+                    showRight: false,
+                },
+                methods: {
+                    postComment: function (parent_id) {
+                        if (parent_id) {
+                            this.comment.parent_id = parent_id
+                        }
+                        this.comment.article_id = '{{ article.id }}'
+                        $.ajax({
+                            url: '/comment',
+                            type: 'POST',
+                            data: JSON.stringify(vm.comment),
+                            success: function (response) {
+                                // 评论位置显示，如何实现？因为评论是随页面一起来的，而不是ajax
+                                //$('#display-area').append('<div>评论成功，请刷新页面查看</div>')
+                            },
+                        })
+                    }
+                },
+                components: {
+                    affix: VueStrap.affix,
+                    alert: VueStrap.alert,
+                    carousel: VueStrap.carousel,
+                },
+            })
+        }
+    </script>
+{% endblock %}
+<!-- CSS/JS Ending -->
+
+<!-- TODO 增加摘要或者内容等为空时的判断 -->
+{% block body %}
+<div id="app">
+
+    <!-- Vue-strap 试验
+    <affix>
+        <nav class="sidebar">
+            <ul>
+                <li>文章列表</li>
+                <li>评论列表</li>
+            </ul>
+        </nav>
+    </affix>
+
+    <button class="btn btn-default btn-sm" @click="showTop = !showTop">点击</button>
+    <button class="btn btn-default btn-sm" @click="showRight = !showRight">点击</button>
+
+    <alert
+            :show.sync="showRight"
+            :duration="3000"
+            type="success"
+            width="400px"
+            placement="top-right"
+            dismissable
+            >
+        <span class="icon-ok-circled alert-icon-float-left"></span>
+        <strong>Well Done!</strong>
+        <p>You successfully read this important alert message.</p>
+    </alert>
+
+    <alert
+            :show.sync="showTop"
+            :duration="3000"
+            type="danger"
+            width="400px"
+            placement="top"
+            dismissable>
+        <span class="icon-info-circled alert-icon-float-left"></span>
+        <strong>Heads up!</strong>
+        <p>This alert needs your attention.</p>
+    </alert>
+
+    <carousel>
+        <slider>
+            <img src="http://placehold.it/200x200?text=one">
+            <div class="carousel-caption">
+                ...
+            </div>
+        </slider>
+        <slider>
+            <img src="http://placehold.it/200x200?text=two">
+        </slider>
+        <slider>
+            <img src="http://placehold.it/200x200?text=three">
+        </slider>
+    </carousel>
+    -->
+
+    <!--
+    <container>
+    <div class="col-md-9">
+    -->
+
+    <!-- 文章类别 -->
+    <div id="article-classification">
+        <a href="/articles?classification={{ article.classification.id }}">{{ article.classification.name }}</a>
+    </div>
+    <!-- 文章题目 -->
+    <div id="article-title">
+        <h3>{{ article.title }}</h3>
+    </div>
+    <!-- 文章摘要 -->
+    <div id="article-abstract">
+        {{ article.abstract }}
+    </div>
+    <!-- 文章内容 -->
+    <article class="markdown-body">
+        {{ article.content | e }}
+    </article>
+
+    <!-- 评论、子评论区 -->
+    <!--
+        通过使用jinja的macro实现递归，以显示全部子评论
+        失败，使用macro达不到这种效果（多级递归时），查文档后，for循环自带recursive
+    -->
+    {% macro render_comments(comments) %}
+        {% for comment in comments %}
+            <div>
+                <span>{{ comment.user_info.name }}</span>
+                <span>{{ comment.user_info.email }}</span>
+                <span>{{ comment.user_info.link }}</span>
+            </div>
+            <div>{{ comment.content }}</div>
+            {% if comment.sub_comments %}
+                {{ caller(comment.sub_comments) }}
+            {% endif %}
+        {% else %}
+            暂无评论
+        {% endfor %}
+    {% endmacro %}
+
+    <div id="comment">
+        <div class="comment-details">
+            <div id="display-area">
+                <!-- 只显示经过审核通过的评论（display_flag == 1） -->
+                {% for comment in article.comments if comment.display_flag == 1 recursive %}
+                    <!-- 评论详细内容 -->
+                    <div>
+                        <span>{{ comment.user_info.name }}</span>
+                        <span>{{ comment.user_info.email }}</span>
+                        <span>{{ comment.user_info.link }}</span>
+                    </div>
+                    <!-- 引用父级评论 -->
+                    {% if comment.parent_comment %}
+                        <div class="parent-comment">
+                            <div>引用{{ comment.parent_comment.user_info.name }}的发言：</div>
+                            <div>{{ comment.parent_comment.content }}</div>
+                        </div>
+                    {% endif %}
+                    <div>
+                        <span>{{ comment.content }}</span>
+                        <span><button @click="postComment('{{ comment.id }}')">回复</button></span>
+                    </div>
+                    <!-- 递归显示子评论 -->
+                    {% if comment.sub_comments %}
+                        {{ loop(comment.sub_comments) }}
+                    {% endif %}
+                {% else %}
+                    暂无评论
+                {% endfor %}
+            </div>
+
+            <!-- 评论输入区域 -->
+            <div id="response-pannel">
+                <div>
+                    <input id="comment-content" type="text" v-model="comment.content" placeholder="请输入评论内容"/>
+                </div>
+                <div>
+                    <input id="comment-username" type="text" v-model="comment.username" placeholder="请输入您的姓名"/>
+                </div>
+                <div>
+                    <input id="comment-useremail" type="text" v-model="comment.useremail" placeholder="请输入您的电子邮箱"/>
+                </div>
+                <div>
+                    <input id="comment-userlink" type="text" v-model="comment.userlink" placeholder="请输入您的个人网站"/>
+                </div>
+                <div>
+                    <button id="comment-commit" @click="postComment()">提交</button>
+                </div>
+            </div>
+        </div>
+        <div>
+            <a href="/articles">返回文章列表</a>
+        </div>
+
+    <!--
+    </div>
+    </container>
+    -->
+
+    </div>
+</div>
+{% endblock %}
+{% block foot %}
+
+{% endblock %}

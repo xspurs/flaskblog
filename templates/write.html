@@ -1,0 +1,85 @@
+{% extends "example.html" %}
+{% block title %}
+    文章编辑
+{% endblock %}
+{% block head %}
+    <!-- KindEditor相关库
+    <script charset="utf-8" src="{{ url_for('static', filename='js/editor/kindeditor-all.js') }}"></script>
+     -->
+    <script type="text/javascript" src="http://js.nicedit.com/nicEdit-latest.js"></script>
+    <script type="text/javascript">
+        //<![CDATA[
+        bkLib.onDomLoaded(function () {
+            new nicEditor().panelInstance('area1');
+            new nicEditor({fullPanel: true}).panelInstance('area2');
+            new nicEditor({iconsPath: '../nicEditorIcons.gif'}).panelInstance('area3');
+            new nicEditor({buttonList: ['fontSize', 'bold', 'italic', 'underline', 'strikeThrough', 'subscript', 'superscript', 'html', 'image']}).panelInstance('area4');
+            new nicEditor({maxHeight: 100}).panelInstance('area5');
+        });
+        //]]>
+    </script>
+    <script>
+        window.onload = function () {
+            var el = document.querySelector('textarea')
+            el.addEventListener('keydown', function (e) {
+                if (e.which === 9) {
+                    var start = el.selectionStart,
+                            end = el.selectionEnd
+
+                    el.value = el.value.substring(0, start)
+                            + "\t"
+                            + el.value.substring(end)
+
+                    el.selectionStart = el.selectionEnd = start + 1
+                    e.preventDefault()
+                }
+            })
+            /*
+             document.querySelector('textarea').addEventListener('keydown', function(e) {
+             if(e.which === 9) {
+
+             e.preventDefault()
+             }
+             })
+             */
+        }
+    </script>
+{% endblock %}
+
+{% block body %}
+    <a href="/">返回首页</a>
+    <form action="/article" method="post">
+        <div>文章标题：<input name="title" class="form-control" type="text" placeholder="请输入文章标题"></div>
+        <div>文章标签：<input name="tags" class="form-control" type="text" placeholder="请输入文章标签"></div>
+        <div>
+            文章类别：
+            <select name="classification" class="form-control">
+                <option value="" selected>-----请选择文章类别-----</option>
+                {% for classification in classifications %}
+                    <option value="{{ classification.id }}">{{ classification.name }}</option>
+                {% else %}
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            文章摘要：
+            <input name="abstract" class="form-control" type="text" placeholder="请输入文章摘要">
+        </div>
+
+        <div>
+            <!-- 原生
+            -->
+            <textarea name="content" class="form-control" rows="10" placeholder="请输入文章内容"></textarea>
+
+            <!-- NicEdit
+            <textarea name="content" cols="60" id="area1"></textarea>
+            -->
+        </div>
+
+        <div><input type="submit" value="发布"></div>
+    </form>
+    {{ super() }}
+{% endblock %}
+
+{% block foot %}
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "example.html" %}
+{% block title %}
+    文案列表
+{% endblock %}
+
+{% block head %}
+{% endblock %}
+
+{% block body %}
+    {% if session.logged_in %}
+        <form action="{{ url_for('add_entry') }}" method="post" class="add-entry">
+            <dl>
+                <dt>Title:
+                <dd><input type="text" size="30" name="title">
+                <dt>Text:
+                <dd><textarea name="text" rows="5" cols="40"></textarea>
+                <dd><input type="submit" value="Share">
+            </dl>
+        </form>
+    {% endif %}
+    <ul class="entries">
+        {% for article in articles %}
+            <li>
+                <h2>
+                    <a href="/article/{{ article.id }}">{{ article.title }}</a>
+                </h2>
+            </li>
+        {% else %}
+            <li>
+                <em>暂无文章</em>
+            </li>
+        {% endfor %}
+    </ul>
+{% endblock %}
+
+{% block foot %}
+{% endblock %}

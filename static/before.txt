@@ -1,0 +1,1 @@
+start /b mongod --dbpath=C:\mongodb-win32-x86_64-2.0.6\db --logpath=C:\mongodb-win32-x86_64-2.0.6\log\mongo.log
