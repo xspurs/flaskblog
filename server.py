@@ -137,8 +137,17 @@ def articles_classify_show(classification_id):
 def article(article_id):
     # 使用flask.Markup进行转义
     corresponding_article = Article.objects(id=article_id).first()
-    corresponding_article.content = Markup(corresponding_article.content)
+    corresponding_article.content = Markup(misaka.html(corresponding_article.content))
     return render_template('article.html', article=corresponding_article)
+
+
+# 页面
+# 文章内容修改
+@app.route('/article/edit/<string:article_id>', methods=['GET'])
+def article_edit(article_id):
+    article = Article.objects(id=article_id).first()
+    classifications = Classification.objects
+    return render_template('write.html', classifications=classifications, article=article)
 
 
 # 页面
@@ -199,9 +208,9 @@ def article_delete(article_id):
 
 
 # 页面
-# 新建/编辑文章页面
+# 新建文章
 @app.route('/article', methods=['GET'])
-def article_edit_page():
+def article_create():
     classifications = Classification.objects
     return render_template('write.html', classifications=classifications)
 
@@ -209,19 +218,22 @@ def article_edit_page():
 # 接口
 # 发布/保存文章
 # TODO 发布的文章需要支持markdown格式
-@app.route('/article', methods=['POST'])
+@app.route('/article', methods=['POST', 'GET'])
 def article_post():
     # 加上就报错，不知道为什么
     # if not session.get('logged_in'):
     #    abort(401)
 
     # 获取表单数据
+    id = request.form.get('id')
     title = request.form.get('title')
     tags = request.form.get('tags')
     classification_id = request.form.get('classification')
     abstract = request.form.get('abstract')
     # content = markdown.markdown(request.form.get('content'), extensions=['markdown.extensions.extra'])
-    content = misaka.html(request.form.get('content'))
+    # content = misaka.html(request.form.get('content'))
+    # 保存数据库时，不保存HTML格式文本
+    content = request.form.get('content')
     # 通过model中的默认值去添加，在此不再生成
     # create_time = datetime.datetime.now()
 
@@ -232,11 +244,24 @@ def article_post():
     else:
         tag_doc.append(Tag(name=tags).save())
     classification_doc = Classification.objects(id=classification_id).first()
-    article_posted = Article(title=title, tags=tag_doc, classification=classification_doc, abstract=abstract,
-                             content=content).save()
-    # return redirect(url_for('articles_all_show'))
-    # 跳转到新发布的文章详情页
-    return redirect('/article/' + str(article_posted.id))
+
+    if not id:
+        article_posted = Article(title=title, tags=tag_doc, classification=classification_doc, abstract=abstract,
+                                 content=content).save()
+        return redirect('/article/' + str(article_posted.id))
+    else:
+        Article.objects(id=id).update_one(title=title, tags=tag_doc,
+                                          classification=classification_doc, abstract=abstract,
+                                          content=content)
+        """
+        article_putted.title = title
+        article_putted.tags = tag_doc
+        article_putted.classification = classification_doc
+        article_putted.abstract = abstract
+        article_putted.content = content
+        article_putted.reload()
+        """
+        return redirect('/article/' + id)
 
 
 # Bootstrap Example
@@ -253,7 +278,6 @@ def comments_corr_article(article_id):
     comments = Article.objects(id=article_id).only('comments').first().comments
     # return json.dumps(comments), 400
     return json.dumps(comments)
-
 
 # 启动服务
 if __name__ == '__main__':
