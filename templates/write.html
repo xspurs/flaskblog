@@ -48,36 +48,78 @@
 
 {% block body %}
     <a href="/">返回首页</a>
-    <form action="/article" method="post">
-        <div>文章标题：<input name="title" class="form-control" type="text" placeholder="请输入文章标题"></div>
-        <div>文章标签：<input name="tags" class="form-control" type="text" placeholder="请输入文章标签"></div>
-        <div>
-            文章类别：
-            <select name="classification" class="form-control">
-                <option value="" selected>-----请选择文章类别-----</option>
-                {% for classification in classifications %}
-                    <option value="{{ classification.id }}">{{ classification.name }}</option>
-                {% else %}
-                {% endfor %}
-            </select>
-        </div>
-        <div>
-            文章摘要：
-            <input name="abstract" class="form-control" type="text" placeholder="请输入文章摘要">
-        </div>
+    {% if not article %}
+        <form action="/article" method="post">
+            <div>文章标题：<input name="title" class="form-control" type="text" placeholder="请输入文章标题"></div>
+            <div>文章标签：<input name="tags" class="form-control" type="text" placeholder="请输入文章标签"></div>
+            <div>
+                文章类别：
+                <select name="classification" class="form-control">
+                    <option value="" selected>-----请选择文章类别-----</option>
+                    {% for classification in classifications %}
+                        <option value="{{ classification.id }}">{{ classification.name }}</option>
+                    {% else %}
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                文章摘要：
+                <input name="abstract" class="form-control" type="text" placeholder="请输入文章摘要">
+            </div>
 
-        <div>
-            <!-- 原生
-            -->
-            <textarea name="content" class="form-control" rows="10" placeholder="请输入文章内容"></textarea>
+            <div>
+                <!-- 原生
+                -->
+                <textarea name="content" class="form-control" rows="10" placeholder="请输入文章内容"></textarea>
 
-            <!-- NicEdit
-            <textarea name="content" cols="60" id="area1"></textarea>
-            -->
-        </div>
+                <!-- NicEdit
+                <textarea name="content" cols="60" id="area1"></textarea>
+                -->
+            </div>
 
-        <div><input type="submit" value="发布"></div>
-    </form>
+            <div><input type="submit" value="发布"></div>
+        </form>
+    {% else %}
+        <form action="/article" method="post">
+            <input name="id" type="hidden" value="{{ article.id }}">
+
+            <div>文章标题：<input name="title" class="form-control" type="text" placeholder="请输入文章标题"
+                             value="{{ article.title }}"></div>
+            <div>文章标签：<input name="tags" class="form-control" type="text" placeholder="请输入文章标签" value=""></div>
+            <div>
+                文章类别：
+                <select name="classification" class="form-control">
+                    <option value="">-----请选择文章类别-----</option>
+                    {% for classification in classifications %}
+                        <option value="{{ classification.id }}"
+                                {% if classification.id == article.classification.id %}
+                                selected
+                                {% endif %}
+                                >{{ classification.name }}</option>
+                    {% else %}
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                文章摘要：
+                <input name="abstract" class="form-control" type="text" placeholder="请输入文章摘要"
+                       value="{{ article.abstract }}">
+            </div>
+
+            <div>
+                <!-- 原生
+                -->
+                <textarea name="content" class="form-control" rows="10"
+                          placeholder="请输入文章内容">{{ article.content }}</textarea>
+
+                <!-- NicEdit
+                <textarea name="content" cols="60" id="area1"></textarea>
+                -->
+            </div>
+
+            <div><input type="submit" value="发布"></div>
+        </form>
+    {% endif %}
     {{ super() }}
 {% endblock %}
 
