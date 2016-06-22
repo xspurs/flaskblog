@@ -36,6 +36,8 @@ from model import *
 # import markdown
 import misaka
 
+from flask_admin import Admin
+
 # 创建应用
 app = Flask(__name__)
 
@@ -45,8 +47,13 @@ app.config.from_pyfile('app.cfg')
 # 不太明白这个的作用，看文档？！
 app.config.from_envvar('FLASKR_SETTINGS', silent=True)
 
+admin = Admin(app, name='microblog', template_mode='bootstrap3')
+
 # 创建数据库连接
 db = MongoEngine(app)
+# Or
+# db = MongoEngine()
+# db.init_app(app)
 
 
 # TODO 程序异常时添加处理，如关闭数据库连接等（MongoEngine应该可以自动关闭连接）
@@ -79,7 +86,7 @@ def login():
             session['logged_in'] = True
             flash('You were logged in')
             return redirect(url_for('show_entries'))
-    return render_template('login.html', error=error)
+    return render_template('signin.html', error=error)
 
 
 # 接口
@@ -267,7 +274,7 @@ def article_post():
 # Bootstrap Example
 @app.route('/example')
 def example():
-    return render_template('example.html')
+    return render_template('new.html')
 
 
 # 接口
