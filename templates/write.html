@@ -1,6 +1,11 @@
-{% extends "example.html" %}
+{#
+{% extends "new.html" %}
+ #}
+<!-- 扩展flask-admin模板 -->
+{% extends 'admin/master.html' %}
+
 {% block title %}
-    文章编辑
+    写文章
 {% endblock %}
 {% block head %}
     <!-- KindEditor相关库
@@ -18,8 +23,107 @@
         });
         //]]>
     </script>
+    <!-- Vue.js -->
+{% endblock %}
+
+{% block body %}
+    <!--
+    <a href="/">返回首页</a>
+    -->
+    <div id="app">
+        <form name="articleForm" action="/article" method="post">
+            {% if not article %}
+                <div>
+                    文章标题：
+                    <input name="title" class="form-control" v-model="article.title" type="text" placeholder="请输入文章标题">
+                </div>
+                <!-- TODO 隐藏了文章标签
+                <div>文章标签：<input name="tags" class="form-control" type="text" placeholder="请输入文章标签"></div>
+                -->
+                <div>
+                    文章类别：
+                    <select name="classification" class="form-control" v-model="article.classificationId">
+                        <option value="" selected>-----请选择文章类别-----</option>
+                        {% for classification in classifications %}
+                            <option value="{{ classification.id }}">{{ classification.name }}</option>
+                        {% else %}
+
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    文章摘要：
+                    <input name="abstract" class="form-control" v-model="article.abstract" type="text" placeholder="请输入文章摘要">
+                </div>
+
+                <div>
+                    <!-- 原生
+                    -->
+                    <textarea name="content" class="form-control" v-model="article.content" rows="20" placeholder="请输入文章内容"></textarea>
+
+                    <!-- NicEdit
+                    <textarea name="content" cols="60" id="area1"></textarea>
+                    -->
+                </div>
+            {% else %}
+                <input name="id" type="hidden" value="{{ article.id }}">
+                <div>
+                    文章标题：
+                    <input name="title" class="form-control" type="text" placeholder="请输入文章标题" value="{{ article.title }}">
+                </div>
+                <!-- TODO 隐藏了文章标签
+                <div>文章标签：<input name="tags" class="form-control" type="text" placeholder="请输入文章标签" value=""></div>
+                -->
+                <div>
+                    文章类别：
+                    <select name="classification" class="form-control">
+                        <option value="">-----请选择文章类别-----</option>
+                        {% for classification in classifications %}
+                            <option value="{{ classification.id }}"
+                                    {% if classification.id == article.classification.id %}
+                                    selected
+                                    {% endif %}
+                                    >{{ classification.name }}</option>
+                        {% else %}
+
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    文章摘要：
+                    <input name="abstract" class="form-control" type="text" placeholder="请输入文章摘要"
+                           value="{{ article.abstract }}">
+                </div>
+
+                <div>
+                    <!-- 原生
+                    -->
+                    <textarea name="content" class="form-control" rows="10"
+                              placeholder="请输入文章内容">{{ article.content }}</textarea>
+
+                    <!-- NicEdit
+                    <textarea name="content" cols="60" id="area1"></textarea>
+                    -->
+                </div>
+            {% endif %}
+            <div>
+                <!-- 添加预览功能 -->
+                <input id="release-btn" type="submit" value="发布">
+                <input id="preview-btn" type="button" @click="articlePreview" value="预览">
+            </div>
+        </form>
+    </div>
+    {{ super() }}
+{% endblock %}
+
+{% block tail %}
+    <script src="{{ url_for('static', filename='js/lib/vue.js') }}"></script>
     <script>
-        window.onload = function () {
+        //window.onload = function () {
+        $(function() {
+            /*
+             为textarea添加自定义tab操作(\t)
+             */
             var el = document.querySelector('textarea')
             el.addEventListener('keydown', function (e) {
                 if (e.which === 9) {
@@ -34,94 +138,52 @@
                     e.preventDefault()
                 }
             })
-            /*
-             document.querySelector('textarea').addEventListener('keydown', function(e) {
-             if(e.which === 9) {
 
-             e.preventDefault()
-             }
-             })
-             */
-        }
+            // 自定义插值定界符，已和jinja2中的默认插值定界符区分
+            // See http://cn.vuejs.org/api/#delimiters
+            Vue.config.delimiters = ['${', '}']
+            Vue.config.debug = true
+            var classifications = []
+            {% for classification in classifications %}
+                classifications.push({
+                    'id': '{{ classification.id }}',
+                    'name': '{{ classification.name }}',
+                })
+            {% else %}
+
+            {% endfor %}
+            var vm = new Vue({
+                el: '#app',
+                data: {
+                    message: 'Hello, Vue!',
+                    article: {},
+                },
+                methods: {
+                    // 预览按钮点击事件
+                    articlePreview: function() {
+                        articleForm.action = '/admin/article/preview'
+                        articleForm.submit()
+                        /*
+                        for(var i in classifications) {
+                            if(classifications[i].id === this.article.classificationId) {
+                                this.article.classification = classifications[i]
+                                break
+                            }
+                        }
+                        $.ajax({
+                            // url: '/article/preview',
+                            url: '/admin/article/preview',
+                            async: false,
+                            type: 'POST',
+                            data: JSON.stringify(this.article),
+                            success: function(response) {
+
+                            }
+                        })
+                        */
+                    }
+                },
+            })
+        })
     </script>
-{% endblock %}
-
-{% block body %}
-    <a href="/">返回首页</a>
-    {% if not article %}
-        <form action="/article" method="post">
-            <div>文章标题：<input name="title" class="form-control" type="text" placeholder="请输入文章标题"></div>
-            <div>文章标签：<input name="tags" class="form-control" type="text" placeholder="请输入文章标签"></div>
-            <div>
-                文章类别：
-                <select name="classification" class="form-control">
-                    <option value="" selected>-----请选择文章类别-----</option>
-                    {% for classification in classifications %}
-                        <option value="{{ classification.id }}">{{ classification.name }}</option>
-                    {% else %}
-                    {% endfor %}
-                </select>
-            </div>
-            <div>
-                文章摘要：
-                <input name="abstract" class="form-control" type="text" placeholder="请输入文章摘要">
-            </div>
-
-            <div>
-                <!-- 原生
-                -->
-                <textarea name="content" class="form-control" rows="10" placeholder="请输入文章内容"></textarea>
-
-                <!-- NicEdit
-                <textarea name="content" cols="60" id="area1"></textarea>
-                -->
-            </div>
-
-            <div><input type="submit" value="发布"></div>
-        </form>
-    {% else %}
-        <form action="/article" method="post">
-            <input name="id" type="hidden" value="{{ article.id }}">
-
-            <div>文章标题：<input name="title" class="form-control" type="text" placeholder="请输入文章标题"
-                             value="{{ article.title }}"></div>
-            <div>文章标签：<input name="tags" class="form-control" type="text" placeholder="请输入文章标签" value=""></div>
-            <div>
-                文章类别：
-                <select name="classification" class="form-control">
-                    <option value="">-----请选择文章类别-----</option>
-                    {% for classification in classifications %}
-                        <option value="{{ classification.id }}"
-                                {% if classification.id == article.classification.id %}
-                                selected
-                                {% endif %}
-                                >{{ classification.name }}</option>
-                    {% else %}
-                    {% endfor %}
-                </select>
-            </div>
-            <div>
-                文章摘要：
-                <input name="abstract" class="form-control" type="text" placeholder="请输入文章摘要"
-                       value="{{ article.abstract }}">
-            </div>
-
-            <div>
-                <!-- 原生
-                -->
-                <textarea name="content" class="form-control" rows="10"
-                          placeholder="请输入文章内容">{{ article.content }}</textarea>
-
-                <!-- NicEdit
-                <textarea name="content" cols="60" id="area1"></textarea>
-                -->
-            </div>
-
-            <div><input type="submit" value="发布"></div>
-        </form>
-    {% endif %}
-    {{ super() }}
-{% endblock %}
-
-{% block foot %}
 {% endblock %}

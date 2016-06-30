@@ -1,13 +1,13 @@
 {% extends "new.html" %}
 {% block title %}
-    登录
+    注册
 {% endblock %}
 
 {% block head %}
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/login.css') }}">
 {% endblock %}
 
-{% block login_active %}
+{% block register_active %}
     active
 {% endblock %}
 
@@ -29,20 +29,21 @@
         </dl>
     </form>
     -->
-    <div class="container login-body">
-        <form class="form-signin" method="post" action="/login">
-            <h2 class="form-signin-heading">登录</h2>
+    <div class="container">
+        <form class="form-signin" method="post" action="/register">
+            <h2 class="form-signin-heading">注册</h2>
             <label for="inputUsername" class="sr-only">账号</label>
             <input name="loginid" type="text" id="inputEmail" class="form-control" placeholder="请输入您的账号" required autofocus>
             <label for="inputPassword" class="sr-only">密码</label>
             <input name="password" type="password" id="inputPassword" class="form-control" placeholder="请输入您的密码" required>
+            <!-- TODO 再次输入密码进行校验 -->
+            <!-- TODO 前端校验/后端校验 -->
+            <!--
+            <label for="inputPassword" class="sr-only">再次</label>
+            <input name="password" type="password" id="inputPassword" class="form-control" placeholder="请再次您的密码" required>
+            -->
 
-            <div class="checkbox">
-                <label>
-                    <input name="remember" type="checkbox" value="True"> 记住我的登录状态
-                </label>
-            </div>
-            <button class="btn btn-lg btn-primary btn-block" type="submit">登录</button>
+            <button class="btn btn-lg btn-primary btn-block" type="submit">注册</button>
         </form>
     </div>
 

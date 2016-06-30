@@ -1,4 +1,4 @@
-{% extends "example.html" %}
+{% extends "new.html" %}
 {% block title %}
     文章详情
 {% endblock %}
@@ -20,9 +20,10 @@
     <script src="{{ url_for('static', filename='js/lib/jquery-1.11.2.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/lib/vue-strap.js') }}"></script>
     <script>
-        window.onload = function() {
+        $(function() {
             //$('.markdown-body').html('<code>class Person(object):</code>')
-            Vue.debug = true
+            Vue.config.debug = true
+            Vue.config.delimiters = ['${', '}']
             var vm = new Vue({
                 el: '#app',
                 data: {
@@ -45,7 +46,10 @@
                                 //$('#display-area').append('<div>评论成功，请刷新页面查看</div>')
                             },
                         })
-                    }
+                    },
+                    releaseArticle: function() {
+
+                    },
                 },
                 components: {
                     affix: VueStrap.affix,
@@ -53,7 +57,7 @@
                     carousel: VueStrap.carousel,
                 },
             })
-        }
+        })
     </script>
 {% endblock %}
 <!-- CSS/JS Ending -->
@@ -123,18 +127,18 @@
 
     <!-- 文章类别 -->
     <div id="article-classification">
-        <a href="/articles?classification={{ article.classification.id }}">{{ article.classification.name }}</a>
+        <a href="/articles?classification={{ article.classification.id }}" v-model="article.classificationName">{{ article.classification.name }}</a>
     </div>
     <!-- 文章题目 -->
     <div id="article-title">
-        <h3>{{ article.title }}</h3>
+        <h3 v-model="article.title">{{ article.title }}</h3>
     </div>
     <!-- 文章摘要 -->
-    <div id="article-abstract">
+    <div id="article-abstract" v-model="article.abstract">
         {{ article.abstract }}
     </div>
     <!-- 文章内容 -->
-    <article class="markdown-body">
+    <article class="markdown-body" v-model="article.content">
         {{ article.content | e }}
     </article>
 
@@ -159,72 +163,86 @@
         {% endfor %}
     {% endmacro %}
 
-    <div id="comment">
-        <div class="comment-details">
-            <div id="display-area">
-                <!-- 只显示经过审核通过的评论（display_flag == 1） -->
-                {% for comment in article.comments if comment.display_flag == 1 recursive %}
-                    <!-- 评论详细内容 -->
-                    <div>
-                        <span>{{ comment.user_info.name }}</span>
-                        <span>{{ comment.user_info.email }}</span>
-                        <span>{{ comment.user_info.link }}</span>
-                    </div>
-                    <!-- 引用父级评论 -->
-                    {% if comment.parent_comment %}
-                        <div class="parent-comment">
-                            <div>引用{{ comment.parent_comment.user_info.name }}的发言：</div>
-                            <div>{{ comment.parent_comment.content }}</div>
+    {% if mode == 'release' %}
+        <div id="comment">
+            <div class="comment-details">
+                <div id="display-area">
+                    <!-- 只显示经过审核通过的评论（display_flag == 1） -->
+                    {% for comment in article.comments if comment.display_flag == 1 recursive %}
+                        <!-- 评论详细内容 -->
+                        <div>
+                            <span>{{ comment.user_info.name }}</span>
+                            <span>{{ comment.user_info.email }}</span>
+                            <span>{{ comment.user_info.link }}</span>
                         </div>
-                    {% endif %}
+                        <!-- 引用父级评论 -->
+                        {% if comment.parent_comment %}
+                            <div class="parent-comment">
+                                <div>引用{{ comment.parent_comment.user_info.name }}的发言：</div>
+                                <div>{{ comment.parent_comment.content }}</div>
+                            </div>
+                        {% endif %}
+                        <div>
+                            <span>{{ comment.content }}</span>
+                            <span><button @click="postComment('{{ comment.id }}')">回复</button></span>
+                        </div>
+                        <!-- 递归显示子评论 -->
+                        {% if comment.sub_comments %}
+                            {{ loop(comment.sub_comments) }}
+                        {% endif %}
+                    {% else %}
+                        暂无评论
+                    {% endfor %}
+                </div>
+
+                <!-- 评论输入区域 -->
+                <div id="response-pannel">
                     <div>
-                        <span>{{ comment.content }}</span>
-                        <span><button @click="postComment('{{ comment.id }}')">回复</button></span>
+                        <input id="comment-content" type="text" v-model="comment.content" placeholder="请输入评论内容"/>
                     </div>
-                    <!-- 递归显示子评论 -->
-                    {% if comment.sub_comments %}
-                        {{ loop(comment.sub_comments) }}
-                    {% endif %}
-                {% else %}
-                    暂无评论
-                {% endfor %}
+                    <div>
+                        <input id="comment-username" type="text" v-model="comment.username" placeholder="请输入您的姓名"/>
+                    </div>
+                    <div>
+                        <input id="comment-useremail" type="text" v-model="comment.useremail" placeholder="请输入您的电子邮箱"/>
+                    </div>
+                    <div>
+                        <input id="comment-userlink" type="text" v-model="comment.userlink" placeholder="请输入您的个人网站"/>
+                    </div>
+                    <div>
+                        <button id="comment-commit" @click="postComment()">提交</button>
+                    </div>
+                </div>
             </div>
 
-            <!-- 评论输入区域 -->
-            <div id="response-pannel">
-                <div>
-                    <input id="comment-content" type="text" v-model="comment.content" placeholder="请输入评论内容"/>
-                </div>
-                <div>
-                    <input id="comment-username" type="text" v-model="comment.username" placeholder="请输入您的姓名"/>
-                </div>
-                <div>
-                    <input id="comment-useremail" type="text" v-model="comment.useremail" placeholder="请输入您的电子邮箱"/>
-                </div>
-                <div>
-                    <input id="comment-userlink" type="text" v-model="comment.userlink" placeholder="请输入您的个人网站"/>
-                </div>
-                <div>
-                    <button id="comment-commit" @click="postComment()">提交</button>
-                </div>
+            <!--
+                2016-06-28
+                修改文章内容已合并入flask-admin中
+            <div>
+                <a href="/article/edit/{#{{ article.id }}#}">修改文章内容</a>
             </div>
+            -->
+
+        <!--
         </div>
+        </container>
+        -->
+
+        </div>
+
         <div>
             <a href="/articles">返回文章列表</a>
         </div>
+    {% endif %}
+    <!-- end of comment -->
 
-        <div>
-            <a href="/article/edit/{{ article.id }}">修改文章内容</a>
-        </div>
-
-    <!--
-    </div>
-    </container>
-    -->
-
-    </div>
+    {% if mode == 'preview' %}
+        <input type="button" value="确认发布">
+        <input type="button" value="返回修改">
+    {% endif %}
 </div>
 {% endblock %}
+
 {% block foot %}
 
 {% endblock %}

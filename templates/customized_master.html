@@ -1,0 +1,20 @@
+{% extends 'admin/base.html' %}
+
+{% block access_control %}
+    {% if current_user.is_authenticated %}
+        <div class="btn-group pull-right">
+            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+                <i class="icon-user"></i> {{ current_user.login_id }} <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu">
+                <!--
+                    # No Chinese Is Allowed, OR
+                    # UnicodeDecodeError
+                    # Will Be Raised
+                    # TODO How to support multi languages With flask-admin
+                -->
+                <li><a href="{{ url_for('admin.logout_view') }}">Log out</a></li>
+            </ul>
+        </div>
+    {% endif %}
+{% endblock %}

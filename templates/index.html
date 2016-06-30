@@ -1,29 +1,115 @@
-{% extends "example.html" %}
+{% extends "new.html" %}
 {% block title %}
     首页
 {% endblock %}
 
 {% block head %}
+    <!-- Markdown内容显示区 -->
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/github-markdown.css') }}">
+    <style>
+        .markdown-body {
+            box-sizing: border-box;
+            min-width: 200px;
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 45px;
+        }
+    </style>
+{% endblock %}
+
+{% block index_active %}
+    active
 {% endblock %}
 
 {% block body %}
+	<!--
 	<div id="welcome">
 		欢迎访问我的博客
 		<a href="/article">去写文章</a>
 	</div>
 	<div id="article-classification">
 		<div class="classification-link"><a href="/articles">全部文章</a></div>
+		{#
         {% for classification in classifications %}
             <div class="classification-link"><a href="/articles?classification={{ classification.id }}">{{ classification.name }}</a></divclassification>
         {% else %}
             <div>暂无文章分类</div>
         {% endfor %}
-	</div>
-	<!--
-	<div id="article-classification">
-		<a href="/article">去写文章</a>
+        #}
 	</div>
 	-->
+
+    <div class="blog-header">
+        <h1 class="blog-title">细桶假狗屎的博客</h1>
+        <p class="lead blog-description">来都来了，多看两眼呗~</p>
+    </div>
+
+    <div class="row">
+        <div class="col-sm-8 blog-main">
+            {% if article %}
+                <div class="blog-post">
+                    <!-- 文章类别 -->
+                    <div id="article-classification">
+                        <a href="/articles?classification={{ article.classification.id }}">{{ article.classification.name }}</a>
+                    </div>
+                    <!-- 文章题目 -->
+                    <div id="article-title">
+                        <h3>{{ article.title }}</h3>
+                    </div>
+                    <!-- 文章摘要 -->
+                    <div id="article-abstract">
+                        {{ article.abstract }}
+                    </div>
+                    <article class="markdown-body">
+                        {{ article.content | e }}
+                    </article>
+                </div>
+
+                <nav>
+                    <ul class="pager">
+                        <li><a href="#">上一页</a></li>
+                        <li><a href="#">下一页</a></li>
+                    </ul>
+                </nav>
+            {% else %}
+                <div>暂无文章</div>
+            {% endif %}
+        </div>
+        <!-- /.blog-main -->
+
+        <div class="col-sm-3 col-sm-offset-1 blog-sidebar">
+            <div class="sidebar-module sidebar-module-inset">
+                <h4>关于</h4>
+                <p>细桶假狗屎，一个屌的飞起的萌Boy.</p>
+                <!--
+                <p>Etiam porta <em>sem malesuada magna</em> mollis euismod. Cras mattis consectetur purus sit amet
+                    fermentum. Aenean lacinia bibendum nulla sed consectetur.</p>
+                -->
+            </div>
+            <div class="sidebar-module">
+                <h4>文章分类</h4>
+                <ol class="list-unstyled">
+                    {% for classification in classifications %}
+                        <li><a href="/articles?classification={{ classification.id }}">{{ classification.name }}</a></li>
+                    {% else %}
+                        <div>暂无文章分类</div>
+                    {% endfor %}
+                </ol>
+            </div>
+            <div class="sidebar-module">
+                <h4>联系我</h4>
+                <ol class="list-unstyled">
+                    <li><a href="https://github.com/xitongjiagoushi">GitHub</a></li>
+                    <li><a href="http://weibo.com/u/2683635362?refer_flag=1001030101_&is_all=1">微博</a></li>
+                    <li><a href="#">知乎</a></li>
+                </ol>
+            </div>
+        </div>
+        <!-- /.blog-sidebar -->
+
+    </div>
+    <!-- /.row -->
+
 	{{ super() }}
 {% endblock %}
 

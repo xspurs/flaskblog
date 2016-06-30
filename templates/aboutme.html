@@ -1,11 +1,17 @@
-{% extends "example.html" %}
+{% extends "new.html" %}
 {% block head %}
 {% endblock %}
 
+{% block about_active %}
+    active
+{% endblock %}
+
 {% block body %}
-	<div id="about-me">
+	<div class="blog-post">
 		一个爱写代码的程序猿，一个要成为海贼王的男人。
 	</div>
+
+    {{ super() }}
 {% endblock %}
 
 {% block foot %}

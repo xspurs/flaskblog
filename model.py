@@ -4,15 +4,24 @@ __author__ = 'Orclover'
 
 from mongoengine import *
 import datetime
+import flask_login
 
 
 # 用户对象
 # 含有用户基本信息
 # TODO 用户身份信息
-class User(Document):
-    name = StringField(required=True)
-    email = StringField(required=True)
+class User(Document, flask_login.UserMixin):
+    # name = StringField(required=True)
+    # email = StringField(required=True)
+    name = StringField()
+    email = StringField()
     link = StringField()
+    # 为flask_login添加字段
+    login_id = StringField(required=True)
+    password = StringField(required=True)
+    # 区分用户是普通用户还是管理员用户，没有进行细分
+    type = IntField(required=True, default=0)
+
 
 
 # 文章类别对象

@@ -13,19 +13,22 @@ __author__ = 'Orclover'
 # 1. 发布文章接口 + 页面
 # 2. 发布评论接口，包括评论文章，也包括评论评论
 # 3. 修改文章详情页面，主要在与子级评论和父级评论的渲染/展示
+# 12. 文章内容编辑
+# 3. classification的增删改查
 
 # TODO todo-list
 # 1. 页面样式与页面风格
 # 2. 用户注册与登录(必要性?)
-# 3. classification的增删改查
 # 4. 文章的搜索功能，根据tags/classification
-# 6. 评论文章/评论评论时，应该由jQuery去添加元素，还是将整个的野蛮
+# 6. 评论文章/评论评论时，应该由jQuery去添加元素，还是将整个的重新加载
 # 7. 纯接口，取回数据后，返回HTTP Status 200
-# 8. 发布评论时的前后端校验
+# 8. 发布评论时的前后端校
 # 9. 发布文章时的前后端校验
-# 10. 使用pygments进行代码高亮显示
-# 11. 发布文章时，支持两种格式——富文本编辑/Markdown
-# 12. 文章内容编辑
+# 10. 使用pygments进行代码高亮显
+# 11. 发布文章时，支持两种格式——富文本编辑/Markdown示
+# 13. flask-admin中的级联删除/显示问题，如对于评论内容的增删改查等等
+# 14. ?
+
 
 from flask import Flask, request, session, g, redirect, url_for, abort, \
     render_template, flash, make_response, Markup, json
@@ -36,7 +39,11 @@ from model import *
 # import markdown
 import misaka
 
-from flask_admin import Admin
+import flask_login
+# from hashlib import sha256
+from werkzeug.security import generate_password_hash, check_password_hash
+# wtforms
+from wtforms import form, fields, validators
 
 # 创建应用
 app = Flask(__name__)
@@ -47,13 +54,214 @@ app.config.from_pyfile('app.cfg')
 # 不太明白这个的作用，看文档？！
 app.config.from_envvar('FLASKR_SETTINGS', silent=True)
 
-admin = Admin(app, name='microblog', template_mode='bootstrap3')
+# flask-admin初始化，已放入__main__中
+# admin = Admin(app, name='博客管理后台', template_mode='bootstrap3')
 
 # 创建数据库连接
 db = MongoEngine(app)
 # Or
 # db = MongoEngine()
 # db.init_app(app)
+
+
+# flask_login相关，考虑从本文件中摘除
+# 开始
+login_manager = flask_login.LoginManager(app)
+
+
+@login_manager.user_loader
+def user_loader(id):
+    '''
+    TODO 提示用户不存在，在验证密码前的controller中做
+    '''
+    from bson import ObjectId
+    if not ObjectId.is_valid(id):
+        return
+    user = User.objects(id=id).first()
+    if not user:
+        return
+
+    return user
+
+
+'''
+暂时没有用到，request_loader存在的目的是什么？
+@login_manager.request_loader
+def request_loader(request):
+    email = request.form.get('loginid')
+    if email not in users:
+        return
+
+    user = User()
+    user.login_id = email
+
+    # DO NOT ever store passwords in plaintext and always compare password
+    # hashes using constant-time comparison!
+    user.is_authenticated = request.form['pw'] == users[email]['pw']
+
+    return user
+'''
+# 结束
+
+# flask_admin相关，考虑从本文件中摘除
+# 开始
+import flask_admin as admin
+# from flask_admin.form import rules
+from flask_admin.contrib.mongoengine import ModelView
+from flask_admin import BaseView, expose
+
+
+# 基类，为ModelView添加用户身份控制
+class AuthModelView(ModelView):
+    # flask-admin + flask-login
+    def is_accessible(self):
+        # 官方文档调用的是方法，如下：（错误，is_authenticated是current_user的一个属性）
+        # return flask_login.current_user.is_authenticated()
+        # flask_login.current_user.type == 1 为自定义的管理员属性，只有管理员用户才可以进入管理端进行操作
+        return flask_login.current_user.is_authenticated and flask_login.current_user.type == 1
+
+    def inaccessible_callback(self, name, **kwargs):
+        # TODO 根据不同的情况，给予用户不同的提示（如未登录用户提示用户需要登录，已登录但非管理员用户提示用户身份错误等)
+        '''
+        if not flask_login.current_user.is_authenticated:
+            return redirect(url_for('login', next=request.url))
+        elif flask_login.current_user.type != 1:
+            return redirect(url_for('wrong principal', next=request.url))
+        '''
+        return redirect(url_for('login', next=request.url))
+
+
+# 基类，为BaseView添加用户身份控制
+class AuthBaseView(BaseView):
+    # flask-admin + flask-login
+    def is_accessible(self):
+        # 官方文档调用的是方法，如下：（错误，is_authenticated是current_user的一个属性）
+        # return flask_login.current_user.is_authenticated()
+        return flask_login.current_user.is_authenticated
+
+    def inaccessible_callback(self, name, **kwargs):
+        return redirect(url_for('login', next=request.url))
+
+
+class UserView(AuthModelView):
+    column_filters = ['login_id']
+    create_modal, edit_modal = True, True
+
+    column_searchable_list = ('login_id', 'name', 'email')
+
+
+class ClassificationView(AuthModelView):
+    column_searchable_list = ('name',)
+    # 以模态框(modal)形式弹出编辑
+    edit_modal, create_modal = True, True
+
+
+class ArticleView(AuthModelView):
+    column_searchable_list = ('title', 'abstract')
+    column_exclude_list = ('coments', 'tags',)
+    # 禁止对文章进行编辑和新建
+    # can_create, can_edit = False, False
+
+    # 允许再页面内部编辑
+    # column_editable_list = ('',)
+
+    # 单页条数
+    page_size = 10
+
+    '''
+    form_ajax_refs = {
+        ''
+    }
+    '''
+    # 2016-06-27
+    # 在基础上扩展，碉堡
+    @expose('/edit')
+    def edit_view(self):
+        article_id = request.args.get('id')
+        article = Article.objects(id=article_id).first()
+        classifications = Classification.objects.order_by('+name')
+        return self.render('write.html', classifications=classifications, article=article)
+
+    @expose('/create')
+    def create_view(self):
+        classifications = Classification.objects.order_by('+name')
+        return self.render('write.html', classifications=classifications)
+
+    # 文章预览
+    @expose('/preview', methods=('POST',))
+    def preview(self):
+        ''' Ajax请求，无论同步或者异步，都不能正确跳转；通过form.submit()实现
+        article = request.get_json(force=True)
+        return self.render('article.html', article=article, mode='preview')
+        '''
+        classification = Classification.objects(id=request.form.get('classification')).first()
+        article = {
+            'title': request.form.get('title'),
+            'content': request.form.get('content'),
+            'abstract': request.form.get('abstract'),
+            'classification': classification,
+        }
+        return self.render('article.html', article=article, mode='preview')
+
+
+class CommentView(AuthModelView):
+    column_searchable_list = ('content',)
+
+
+'''
+在自定义create_view和edit_view后，无需再自定义View
+不过这是一种思路，可#总结
+class WriteArticleView(AuthBaseView):
+    @expose('/')
+    def index(self):
+        classifications = Classification.objects.order_by('+name')
+        return self.render('write.html', classifications=classifications)
+'''
+
+'''
+class EditArticleView(AuthBaseView):
+    @expose('/')
+    def index(self):
+        articles = Article.objects.order_by('-create_time')
+        # articles_admin.html模板文件已经删除，因为已经没有必要了
+        return self.render('articles_admin.html', articles=articles)
+        # return redirect(url_for('articles_all_show'))
+
+    @expose('/article/edit/<string:article_id>', methods=('GET',))
+    def article_edit(self):
+        article = Article.objects(id=article_id).first()
+        classifications = Classification.objects.order_by('+name')
+        return render_template('write.html', classifications=classifications, article=article)
+'''
+
+
+# 自定义控制
+class CustomizedAdminIndexView(admin.AdminIndexView):
+    @expose('/')
+    def index(self):
+        if not flask_login.current_user.is_authenticated or flask_login.current_user.type != 1:
+            return redirect(url_for('.login_view'))
+        return super(CustomizedAdminIndexView, self).index()
+
+    @expose('/login/', methods=('GET', 'POST'))
+    def login_view(self):
+        return self.render('login.html')
+
+    @expose('/logout/')
+    def logout_view(self):
+        flask_login.logout_user()
+        return redirect(url_for('.index'))
+
+
+# 结束
+
+
+@login_manager.unauthorized_handler
+def unauthorized_handler():
+    return 'Unauthorized'
+
+
+# 结束
 
 
 # TODO 程序异常时添加处理，如关闭数据库连接等（MongoEngine应该可以自动关闭连接）
@@ -66,36 +274,100 @@ def close_db(error):
 # 页面
 # 博客首页
 @app.route('/')
-def show_entries():
-    classifications = Classification.objects
-    return render_template('index.html', classifications=classifications)
+def index():
+    classifications = Classification.objects.order_by('+name')
+    article = Article.objects.order_by('-create_time').first()
+    if article:  # 文章不存在时，不进行转换
+        article.content = Markup(misaka.html(article.content))
+    return render_template('index.html', classifications=classifications, article=article)
 
 
 # 接口
+# 用户注册
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        login_id = request.form.get('loginid')
+        password = request.form.get('password')
+        # 1. 使用hashlib.sha256作为摘要算法加密
+        # encrypted_password = sha256(password.encode('utf-8')).hexdigest()
+        # 2. 使用werkzeug.security中的摘要算法进行加密
+        encrypted_password = generate_password_hash(password)
+        if User.objects(login_id=login_id):
+            # TODO 提示用户已存在
+            pass
+        User(login_id=login_id, password=encrypted_password).save()
+        # return '注册成功', 200
+        # TODO 跳转到注册成功页面
+        # 如果需要，注册成功后帮助用户自动登录
+        return redirect(url_for('index'))
 
+    return render_template('register.html')
+
+
+# 接口
 # 用户登录
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
     if request.method == 'POST':
-        if request.form['username'] != app.config['USERNAME']:
+        is_remember = request.form.get('remember', False)
+        login_id = request.form.get('loginid')
+        password = request.form.get('password')
+
+        # 1. 使用hashlib.sha256作为摘要算法加密
+        # if sha256(request.form.get('password').encode('utf-8')).hexdigest() == User.objects(login_id=login_id).first().password:
+        # 2. 使用werkzeug.security中的摘要算法进行加密
+        user = User.objects(login_id=login_id).first()
+        if not user:
+            # TODO 提示用户不存在
+            pass
+        elif check_password_hash(user.password, password):
+            '''
+            user = User()
+            user.login_id = login_id
+            user.id = login_id
+            '''
+            # remember参数默认为False，设置为True后可通过Cookie记录用户登录状态
+            flask_login.login_user(user, remember=is_remember)
+            # 经测试，query_param中没有next参数
+            # next = request.args.get('next')
+            return redirect(url_for('index'))
+
+        # TODO 跳转到登录失败页面
+        return '登录失败'
+
+        '''
+        if request.form.get('username') != app.config['USERNAME']:
             error = 'Invalid username'
-        elif request.form['password'] != app.config['PASSWORD']:
+        elif request.form.get('password') != app.config['PASSWORD']:
             error = 'Invalid password'
         else:
             session['logged_in'] = True
             flash('You were logged in')
-            return redirect(url_for('show_entries'))
-    return render_template('signin.html', error=error)
+            return redirect(url_for('index'))
+        '''
+    # return render_template('signin.html', error=error)
+    return render_template('login.html', error=error)
 
 
 # 接口
 # 用户登出
 @app.route('/logout')
+@flask_login.login_required
 def logout():
-    session.pop('logged_in', None)
-    flash('You were logged out')
-    return redirect(url_for('show_entries'))
+    flask_login.logout_user()
+    return redirect(url_for('index'))
+
+
+# 测试
+# 测试用户时候登录成功
+@app.route('/protected')
+@flask_login.login_required
+# 相比于login_required注解，有一种更加严格的注解：fresh_login_required，这种注解要求session是fresh状态（从remember me自动登录时，
+# 是non-fresh状态）
+def protected():
+    return 'Logged in as: ' + flask_login.current_user.login_id
 
 
 # 页面
@@ -140,26 +412,52 @@ def articles_classify_show(classification_id):
 
 # 页面
 # 文章详情
-@app.route('/article/<string:article_id>', methods=['GET'])
+@app.route('/article/<string:article_id>')
 def article(article_id):
     # 使用flask.Markup进行转义
     corresponding_article = Article.objects(id=article_id).first()
     corresponding_article.content = Markup(misaka.html(corresponding_article.content))
-    return render_template('article.html', article=corresponding_article)
+    return render_template('article.html', article=corresponding_article, mode='release')
 
 
 # 页面
-# 文章内容修改
+# 文章预览
+''' 已移入flask-admin中
+@app.route('/article/preview', methods=['POST'])
+def article_preview():
+    # 使用flask.Markup进行转义
+    # corresponding_article = Article.objects(id=article_id).first()
+    # corresponding_article.content = Markup(misaka.html(corresponding_article.content))
+    # return render_template('article.html', article=corresponding_article, mode='preview')
+    article = request.get_json(force=True)
+    # classification = Classification.objects(id=article.get('classification')).first()
+    # article[kkk]
+    return render_template('article.html', article=article, mode='preview')
+'''
+
+
+# 页面
+# 新建文章
+'''
+* 现已移入管理端
+@app.route('/article', methods=['GET'])
+def article_create():
+    classifications = Classification.objects.order_by('+name')
+    return render_template('write.html', classifications=classifications)
+
+# 页面
+# 修改文章
 @app.route('/article/edit/<string:article_id>', methods=['GET'])
 def article_edit(article_id):
     article = Article.objects(id=article_id).first()
-    classifications = Classification.objects
+    classifications = Classification.objects.order_by('+name')
     return render_template('write.html', classifications=classifications, article=article)
+'''
 
 
 # 页面
 # 关于我
-@app.route('/aboutme', methods=['GET'])
+@app.route('/about', methods=['GET'])
 def about_me():
     return render_template('aboutme.html')
 
@@ -167,11 +465,14 @@ def about_me():
 # 接口
 # 发表评论
 @app.route('/comment', methods=['POST'])
-def post_comment():
+def comment_post():
     """
     # 通过request.get_json()获取JSON数据
     # ==========
-    # get_json中必须有非空参数，为什么？
+    # get_json中必须有非空参数，为什么？因为——
+    By default this function will return ``None`` if the mimetype is not
+    :mimetype:`application/json` but this can be overridden by the
+    ``force`` parameter.
     # ==========
     """
     data = request.get_json(force=True)
@@ -188,7 +489,7 @@ def post_comment():
                           user_info=user).save()  # cascade=True
         article.comments.append(comment)
         article.save()
-    return '', 200
+    return '评论成功', 200
     # TODO 返回HTTP状态码
     """
     return make_response(status=200)
@@ -214,14 +515,6 @@ def article_delete(article_id):
     return '', 200
 
 
-# 页面
-# 新建文章
-@app.route('/article', methods=['GET'])
-def article_create():
-    classifications = Classification.objects
-    return render_template('write.html', classifications=classifications)
-
-
 # 接口
 # 发布/保存文章
 # TODO 发布的文章需要支持markdown格式
@@ -239,25 +532,28 @@ def article_post():
     abstract = request.form.get('abstract')
     # content = markdown.markdown(request.form.get('content'), extensions=['markdown.extensions.extra'])
     # content = misaka.html(request.form.get('content'))
-    # 保存数据库时，不保存HTML格式文本
+    # 保存数据库时，不保存HTML格式文本；在读取后，显示前，做HTML格式处理
     content = request.form.get('content')
     # 通过model中的默认值去添加，在此不再生成
     # create_time = datetime.datetime.now()
 
+    '''
+    移除文章中的Tags字段
     tag_doc = []
     if ',' in tags:
         for tag in tags.split(','):
             tag_doc.append(Tag(name=tag).save())
     else:
         tag_doc.append(Tag(name=tags).save())
+    '''
     classification_doc = Classification.objects(id=classification_id).first()
 
     if not id:
-        article_posted = Article(title=title, tags=tag_doc, classification=classification_doc, abstract=abstract,
+        article_posted = Article(title=title, classification=classification_doc, abstract=abstract,
                                  content=content).save()
         return redirect('/article/' + str(article_posted.id))
     else:
-        Article.objects(id=id).update_one(title=title, tags=tag_doc,
+        Article.objects(id=id).update_one(title=title,
                                           classification=classification_doc, abstract=abstract,
                                           content=content)
         """
@@ -274,7 +570,10 @@ def article_post():
 # Bootstrap Example
 @app.route('/example')
 def example():
-    return render_template('new.html')
+    classifications = Classification.objects
+    article = Article.objects.order_by('-create_time').first()
+    article.content = Markup(misaka.html(article.content))
+    return render_template('new.html', classifications=classifications, article=article)
 
 
 # 接口
@@ -288,4 +587,19 @@ def comments_corr_article(article_id):
 
 # 启动服务
 if __name__ == '__main__':
+    # flask-admin相关我用接口发表文章
+    # 开始
+    admin = admin.Admin(app, name='博客管理后台', template_mode='bootstrap3', index_view=CustomizedAdminIndexView(),
+                        base_template='customized_master.html')  # base_template='....html'
+    admin.add_view(UserView(User, name="用户管理"))
+    admin.add_view(ClassificationView(Classification, name="分类管理"))
+    admin.add_view(ArticleView(Article, name="文章管理"))
+    admin.add_view(CommentView(Comment, name="评论管理"))
+    '''
+    admin.add_view(WriteArticleView(name='写文章'))  # , endpoint='lalala'))
+    admin.add_view(EditArticleView(name='文章列表'))
+    admin.add_view()
+    '''
+    # 结束
+
     app.run(host=app.config['APP_HOST'], port=app.config['APP_PORT'])  # host='192.168.32.66', port=5000
