@@ -27,28 +27,42 @@
             var vm = new Vue({
                 el: '#app',
                 data: {
+                    article: {},
                     comment: {},
+                    comments: [],
                     showTop: false,
                     showRight: false,
                 },
                 methods: {
-                    postComment: function (parent_id) {
-                        if (parent_id) {
-                            this.comment.parent_id = parent_id
+                    postComment: function (parentId) {
+                        if (parentId) {
+                            this.comment.parent_id = parentId
                         }
                         this.comment.article_id = '{{ article.id }}'
                         $.ajax({
                             url: '/comment',
                             type: 'POST',
-                            data: JSON.stringify(vm.comment),
+                            data: JSON.stringify(this.comment),
                             success: function (response) {
                                 // 评论位置显示，如何实现？因为评论是随页面一起来的，而不是ajax
                                 //$('#display-area').append('<div>评论成功，请刷新页面查看</div>')
+                                vm.comment = {}
                             },
                         })
                     },
                     releaseArticle: function() {
-
+                        //alert('release article.')
+                    },
+                    loadComments: function() {
+                        $.ajax({
+                            url: '/comments/{{ article.id }}',
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function(resp) {
+                                console.log(resp)
+                                vm.comments = resp
+                            },
+                        })
                     },
                 },
                 components: {
@@ -57,6 +71,7 @@
                     carousel: VueStrap.carousel,
                 },
             })
+            vm.loadComments()
         })
     </script>
 {% endblock %}
@@ -127,18 +142,18 @@
 
     <!-- 文章类别 -->
     <div id="article-classification">
-        <a href="/articles?classification={{ article.classification.id }}" v-model="article.classificationName">{{ article.classification.name }}</a>
+        <a href="/articles?classification={{ article.classification.id }}">{{ article.classification.name }}</a>
     </div>
     <!-- 文章题目 -->
     <div id="article-title">
-        <h3 v-model="article.title">{{ article.title }}</h3>
+        <h3>{{ article.title }}</h3>
     </div>
     <!-- 文章摘要 -->
-    <div id="article-abstract" v-model="article.abstract">
+    <div id="article-abstract">
         {{ article.abstract }}
     </div>
     <!-- 文章内容 -->
-    <article class="markdown-body" v-model="article.content">
+    <article class="markdown-body">
         {{ article.content | e }}
     </article>
 
@@ -195,6 +210,32 @@
                     {% endfor %}
                 </div>
 
+
+                <!-- 异步加载评论区，通过Vue进行渲染 -->
+                <div id="async-display-area">
+                    <div v-for="comment in comments">
+                        <div>
+                            <span>样例内容${ comment.user_info.name }</span>
+                            <span>${ comment.user_info.email }</span>
+                            <span>${ comment.user_info.link }</span>
+                        </div>
+
+                        <div class="parent-comment" v-if="comment.parent_comment">
+                            <div>引用${ comment.parent_comment.user_info.name }的发言：</div>
+                            <div>${ comment.parent_comment.content }</div>
+                        </div>
+
+                        <div>
+                            <span>${ comment.content }</span>
+                            <span><button @click="postComment('comment.id')">回复</button></span>
+                        </div>
+                    </div>
+                    <div v-else>
+                        暂无评论，快来抢沙发吧~
+                    </div>
+                </div>
+                <!-- ending -->
+
                 <!-- 评论输入区域 -->
                 <div id="response-pannel">
                     <div>
@@ -214,14 +255,6 @@
                     </div>
                 </div>
             </div>
-
-            <!--
-                2016-06-28
-                修改文章内容已合并入flask-admin中
-            <div>
-                <a href="/article/edit/{#{{ article.id }}#}">修改文章内容</a>
-            </div>
-            -->
 
         <!--
         </div>

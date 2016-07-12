@@ -476,7 +476,7 @@ def comment_post():
     # ==========
     """
     data = request.get_json(force=True)
-    user = User(name=data.get('username'), email=data.get('useremail'), link=data.get('userlink')).save()
+    user = User(name=data.get('username'), email=data.get('useremail'), link=data.get('userlink'), login_id='default_login_id', password='default_password').save()
     if data.get('parent_id'):
         parent_comment = Comment.objects(id=data.get('parent_id')).first()
         comment = Comment(content=data.get('content'), display_flag=app.config['DEFAULT_DISPLAY_FLAG'], user_info=user,
@@ -520,10 +520,6 @@ def article_delete(article_id):
 # TODO 发布的文章需要支持markdown格式
 @app.route('/article', methods=['POST', 'GET'])
 def article_post():
-    # 加上就报错，不知道为什么
-    # if not session.get('logged_in'):
-    #    abort(401)
-
     # 获取表单数据
     id = request.form.get('id')
     title = request.form.get('title')
@@ -578,12 +574,16 @@ def example():
 
 # 接口
 # 获取评论
-@app.route('/comments/<string:article_id>', methods=['GET'])
+@app.route('/comments/<string:article_id>')
 def comments_corr_article(article_id):
     # comments = Article.objects(id=article_id)  # .only('comments')
     comments = Article.objects(id=article_id).only('comments').first().comments
-    # return json.dumps(comments), 400
+    comments.to_json()
+    for comment in comments:
+        comment['user_info'] = User.objects(id=comment.user_info.id).first()
     return json.dumps(comments)
+
+
 
 # 启动服务
 if __name__ == '__main__':
