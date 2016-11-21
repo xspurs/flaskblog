@@ -1,0 +1,13 @@
+start /b mongod --dbpath=C:\mongodb-win32-x86_64-2.0.6\db --logpath=C:\mongodb-win32-x86_64-2.0.6\log\mongo.log
+
+
+# flask-admin + MongoDB demo:
+cd  C:\Users\Orclover\Desktop\github\flask-admin\examples\mongoengine
+python app.py
+
+http://127.0.0.1:5000/admin
+
+
+
+# 可以了解一下blueprints是做什么的
+http://flask.pocoo.org/docs/0.11/blueprints/
