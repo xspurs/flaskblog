@@ -1,4 +1,8 @@
+# 以后台进程方式启动MongoDB：
+Windows：
 start /b mongod --dbpath=C:\mongodb-win32-x86_64-2.0.6\db --logpath=C:\mongodb-win32-x86_64-2.0.6\log\mongo.log
+＊nix：
+nohup mongod --dbpath=/Users/duanxiaoxing/data/mongodb --logpath=/Users/duanxiaoxing/data/mongodb/mongodb.log >> /var/root/nohup_mongo.out
 
 
 # flask-admin + MongoDB demo:
@@ -9,5 +13,5 @@ http://127.0.0.1:5000/admin
 
 
 
-# �����˽�һ��blueprints����ʲô��
+# 可以了解一下blueprints是做什么的
 http://flask.pocoo.org/docs/0.11/blueprints/

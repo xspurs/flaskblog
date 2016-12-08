@@ -59,7 +59,8 @@ class Comment(Document):
     user_info = ReferenceField(User, reverse_delete_rule=CASCADE)
     sub_comments = ListField(ReferenceField('self'))
     parent_comment = ReferenceField('self')
-    parent_article = ReferenceField(Article)
+    # 不能在此引用之后声明的实体类
+    # parent_article = ReferenceField(Article)
 
     def clean(self):
         """
