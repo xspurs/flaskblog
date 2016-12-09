@@ -195,6 +195,7 @@ class ArticleView(AuthModelView):
         return self.render('article.html', article=article, mode='preview')
         '''
         classification = Classification.objects(id=request.form.get('classification')).first()
+        # TODO 异常处理
         article = {
             'title': request.form.get('title'),
             'content': request.form.get('content'),
@@ -277,9 +278,21 @@ def close_db(error):
 def index():
     classifications = Classification.objects.order_by('+name')
     article = Article.objects.order_by('-create_time').first()
-    if article:  # 文章不存在时，不进行转换
+    '''
+    if article:
         article.content = Markup(misaka.html(article.content))
     return render_template('index.html', classifications=classifications, article=article)
+    '''
+
+    '''
+    '''
+    articles = Article.objects.order_by('-create_time').limit(2)
+    if articles:  # 文章不存在时，不进行转换
+        article = articles[0]
+        #articles[0].content = Markup(misaka.html(articles[0].content))
+        article.content = Markup(misaka.html(article.content))
+    return render_template('index.html', classifications=classifications, article=article, next_article=articles[1])
+
 
 
 # 接口
@@ -414,6 +427,7 @@ def articles_classify_show(classification_id):
 # 文章详情
 @app.route('/article/<string:article_id>')
 def article(article_id):
+    # TODO 为转义后的文章生成侧边栏，方便查看，可以使用goose或html5lib
     # 使用flask.Markup进行转义
     corresponding_article = Article.objects(id=article_id).first()
     corresponding_article.content = Markup(misaka.html(corresponding_article.content))

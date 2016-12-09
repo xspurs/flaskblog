@@ -15,6 +15,9 @@
             margin: 0 auto;
             padding: 45px;
         }
+        .center {
+            text-align: center;
+        }
     </style>
     <script src="{{ url_for('static', filename='js/lib/vue.js') }}"></script>
     <script src="{{ url_for('static', filename='js/lib/jquery-1.11.2.min.js') }}"></script>
@@ -145,11 +148,11 @@
         <a href="/articles?classification={{ article.classification.id }}">{{ article.classification.name }}</a>
     </div>
     <!-- 文章题目 -->
-    <div id="article-title">
+    <div id="article-title" class="center">
         <h3>{{ article.title }}</h3>
     </div>
     <!-- 文章摘要 -->
-    <div id="article-abstract">
+    <div id="article-abstract" class="markdown-body">
         {{ article.abstract }}
     </div>
     <!-- 文章内容 -->
@@ -182,15 +185,17 @@
         <div id="comment">
             <div class="comment-details">
                 <div id="display-area">
-                    <!-- 只显示经过审核通过的评论（display_flag == 1） -->
+                    <!-- 只显示经过审核通过的评论（display_flag == 1）
                     {% for comment in article.comments if comment.display_flag == 1 recursive %}
-                        <!-- 评论详细内容 -->
+                    -->
+                        <!-- 评论详细内容
                         <div>
                             <span>{{ comment.user_info.name }}</span>
                             <span>{{ comment.user_info.email }}</span>
                             <span>{{ comment.user_info.link }}</span>
                         </div>
-                        <!-- 引用父级评论 -->
+                        -->
+                        <!-- 引用父级评论
                         {% if comment.parent_comment %}
                             <div class="parent-comment">
                                 <div>引用{{ comment.parent_comment.user_info.name }}的发言：</div>
@@ -201,17 +206,20 @@
                             <span>{{ comment.content }}</span>
                             <span><button @click="postComment('{{ comment.id }}')">回复</button></span>
                         </div>
-                        <!-- 递归显示子评论 -->
+                        -->
+                        <!-- 递归显示子评论
                         {% if comment.sub_comments %}
                             {{ loop(comment.sub_comments) }}
                         {% endif %}
+                        -->
                     {% else %}
                         暂无评论
                     {% endfor %}
                 </div>
 
 
-                <!-- 异步加载评论区，通过Vue进行渲染 -->
+                <!-- 评论显示区域 -->
+                <!-- 异步加载评论区，通过Vue进行渲染
                 <div id="async-display-area">
                     <div v-for="comment in comments">
                         <div>
@@ -234,9 +242,9 @@
                         暂无评论，快来抢沙发吧~
                     </div>
                 </div>
-                <!-- ending -->
+                -->
 
-                <!-- 评论输入区域 -->
+                <!-- 评论输入区域
                 <div id="response-pannel">
                     <div>
                         <input id="comment-content" type="text" v-model="comment.content" placeholder="请输入评论内容"/>
@@ -254,6 +262,7 @@
                         <button id="comment-commit" @click="postComment()">提交</button>
                     </div>
                 </div>
+                -->
             </div>
 
         <!--

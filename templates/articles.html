@@ -4,10 +4,23 @@
 {% endblock %}
 
 {% block head %}
+    <style>
+        li {
+            list-style: none;
+        }
+        .entries ul li h2 a {
+            font-size: .5rem;
+
+        }
+        .entries ul li h2  {
+
+        }
+    </style>
 {% endblock %}
 
 {% block body %}
     {% if session.logged_in %}
+        <!-- 新建文章的功能移入管理控制台
         <form action="{{ url_for('add_entry') }}" method="post" class="add-entry">
             <dl>
                 <dt>Title:
@@ -17,6 +30,7 @@
                 <dd><input type="submit" value="Share">
             </dl>
         </form>
+        -->
     {% endif %}
     <ul class="entries">
         {% for article in articles %}
