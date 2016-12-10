@@ -81,11 +81,21 @@
 
         <div class="col-sm-3 col-sm-offset-1 blog-sidebar">
             <div class="sidebar-module sidebar-module-inset">
+                <!--
                 <h4>关于</h4>
                 <p>身份：普通程序员</p>
                 <p>专职：Java Web开发</p>
                 <p>爱好：各种技术</p>
                 <p>坐标：北京</p>
+                -->
+                <h4>最新发表</h4>
+                <ol class="list-unstyled">
+                    {% for recent_article in recent_articles %}
+                        <li><a href="/article/{{ recent_article.id }}">{{ recent_article.title }}</a></li>
+                    {% else %}
+                        <div>暂无最新发表</div>
+                    {% endfor %}
+                </ol>
             </div>
             <div class="sidebar-module">
                 <h4>文章分类</h4>

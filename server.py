@@ -69,6 +69,10 @@ db = MongoEngine(app)
 login_manager = flask_login.LoginManager(app)
 
 
+# TODO 将beautifulsoup从server.py中摘除，作为单独服务使用
+from bs4 import BeautifulSoup
+
+
 @login_manager.user_loader
 def user_loader(id):
     '''
@@ -286,12 +290,14 @@ def index():
 
     '''
     '''
-    articles = Article.objects.order_by('-create_time').limit(2)
-    if articles:  # 文章不存在时，不进行转换
-        article = articles[0]
+    # 添加最新发表文章列表，取最新发表的五篇文章
+    recent_articles = Article.objects.order_by('-create_time').limit(5)
+    if recent_articles:  # 文章不存在时，不进行转换
+        article = recent_articles[0]
         #articles[0].content = Markup(misaka.html(articles[0].content))
         article.content = Markup(misaka.html(article.content))
-    return render_template('index.html', classifications=classifications, article=article, next_article=articles[1])
+    return render_template('index.html', classifications=classifications, article=article,
+                next_article=recent_articles[1], recent_articles=recent_articles)
 
 
 
@@ -427,11 +433,32 @@ def articles_classify_show(classification_id):
 # 文章详情
 @app.route('/article/<string:article_id>')
 def article(article_id):
-    # TODO 为转义后的文章生成侧边栏，方便查看，可以使用goose或html5lib
+    # TODO 为转义后的文章生成侧边栏，方便查看，可以使用goose或html5lib（最终选型：beautifulsoup4）
+    article = Article.objects(id=article_id).first()
     # 使用flask.Markup进行转义
-    corresponding_article = Article.objects(id=article_id).first()
-    corresponding_article.content = Markup(misaka.html(corresponding_article.content))
-    return render_template('article.html', article=corresponding_article, mode='release')
+    article.content = Markup(misaka.html(article.content))
+    soup = BeautifulSoup(article.content)
+    # 为每个<h>标签添加id，以便需要时进行定位
+    from re import compile
+    a_template = '<a href="#{id}">{value}</a>'
+    article_contents = []
+    #article_contents = ''
+    for index, element in enumerate(soup.find_all(compile('^h[1-9]{1}$'))):
+        element['id'] = index
+        #article_contents += a_template.format(id=index, value=element.string)
+        article_contents.append(Markup(a_template.format(id=index, value=element.string)))
+        html_tag_a = soup.new_tag('a', **{'class': 'headerlink', 'href': '#' + str(index)})
+        html_tag_a.string = '¶'
+        element.append(html_tag_a)
+    # TODO 将
+    # article_contents = Markup(article_contents)
+
+    # 将修饰过到内容转换回来
+    soup_string = str(soup.body.contents)
+    # 去除转换过程中生成的的多余换行符 TODO 查看beautifulsoup API文档，能否在转换过程中不生成多余字符
+    article.content = Markup(soup_string[1:len(soup_string) - 1].replace(r", '\n\n',", ''))
+
+    return render_template('article.html', article=article, mode='release', article_contents=article_contents)
 
 
 # 页面

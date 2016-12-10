@@ -18,6 +18,13 @@
         .center {
             text-align: center;
         }
+        .headerlink {
+            display: none;
+        }
+        h1:hover .headerlink, h2:hover .headerlink, h3:hover .headerlink,
+        h4:hover .headerlink, h5:hover .headerlink, h6:hover .headerlink {
+            display: inline-block;
+        }
     </style>
     <script src="{{ url_for('static', filename='js/lib/vue.js') }}"></script>
     <script src="{{ url_for('static', filename='js/lib/jquery-1.11.2.min.js') }}"></script>
@@ -142,6 +149,17 @@
     <container>
     <div class="col-md-9">
     -->
+    <!-- 文章目录 -->
+    <div id="article-contents">
+        <!--
+        {{ article_contents | e }}
+        -->
+        {% for article_content in article_contents %}
+            <p>
+                {{ article_content }}
+            </p>
+        {% endfor %}
+    </div>
 
     <!-- 文章类别 -->
     <div id="article-classification">
