@@ -151,13 +151,13 @@
     -->
     <!-- 文章目录 -->
     <div id="article-contents">
-        <!--
-        {{ article_contents | e }}
-        -->
-        {% for article_content in article_contents %}
+        {# 按目录层级，缩进显示 #}
+        {% for article_content, indent in article_contents.items() %}
             <p>
-                {{ article_content }}
+                {{ indent * '　　' }}{{ article_content }}
             </p>
+        {% else %}
+
         {% endfor %}
     </div>
 
@@ -175,7 +175,7 @@
     </div>
     <!-- 文章内容 -->
     <article class="markdown-body">
-        {{ article.content | e }}
+        {{ article.content | safe }}
     </article>
 
     <!-- 评论、子评论区 -->

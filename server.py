@@ -430,27 +430,28 @@ def articles_classify_show(classification_id):
 
 # 页面
 # 文章详情
+# 文章生成目录，方便查看，可以使用goose或html5lib（最终选型：beautifulsoup4）
+# TODO 将生成目录功能抽取出来
 @app.route('/article/<string:article_id>')
 def article(article_id):
-    # TODO 为转义后的文章生成侧边栏，方便查看，可以使用goose或html5lib（最终选型：beautifulsoup4）
     article = Article.objects(id=article_id).first()
     # 使用flask.Markup进行转义
     article.content = Markup(misaka.html(article.content))
     soup = BeautifulSoup(article.content)
-    # 为每个<h>标签添加id，以便需要时进行定位
+    # 为每个<h'x'>标签添加id，以便需要时进行定位
     from re import compile
     a_template = '<a href="#{id}">{value}</a>'
-    article_contents = []
-    #article_contents = ''
+    # 使用collections.OrderedDict，以有序字典存储文章目录及对应缩进数
+    from collections import OrderedDict
+    article_contents = OrderedDict()
     for index, element in enumerate(soup.find_all(compile('^h[1-9]{1}$'))):
         element['id'] = index
-        #article_contents += a_template.format(id=index, value=element.string)
-        article_contents.append(Markup(a_template.format(id=index, value=element.string)))
+        # 目录及对应缩进数
+        article_contents.setdefault(Markup(a_template.format(id=index, value=element.string)), int(element.name[1:]) - 1)
+        # 为每个<h'x'>标签添加permalink图标(¶)
         html_tag_a = soup.new_tag('a', **{'class': 'headerlink', 'href': '#' + str(index)})
         html_tag_a.string = '¶'
         element.append(html_tag_a)
-    # TODO 将
-    # article_contents = Markup(article_contents)
 
     # 将修饰过到内容转换回来
     soup_string = str(soup.body.contents)
@@ -618,6 +619,7 @@ def example():
 def comments_corr_article(article_id):
     # comments = Article.objects(id=article_id)  # .only('comments')
     comments = Article.objects(id=article_id).only('comments').first().comments
+    # TODO to_json()报错
     comments.to_json()
     for comment in comments:
         comment['user_info'] = User.objects(id=comment.user_info.id).first()
