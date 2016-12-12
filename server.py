@@ -257,7 +257,6 @@ class CustomizedAdminIndexView(admin.AdminIndexView):
         flask_login.logout_user()
         return redirect(url_for('.index'))
 
-
 # 结束
 
 
@@ -456,7 +455,7 @@ def article(article_id):
     # 将修饰过到内容转换回来
     soup_string = str(soup.body.contents)
     # 去除转换过程中生成的的多余换行符 TODO 查看beautifulsoup API文档，能否在转换过程中不生成多余字符
-    article.content = Markup(soup_string[1:len(soup_string) - 1].replace(r", '\n\n',", ''))
+    article.content = Markup(soup_string[1:len(soup_string) - 1].replace(r", '\n\n',", "").replace(r", '\n'", ""))
 
     return render_template('article.html', article=article, mode='release', article_contents=article_contents)
 
