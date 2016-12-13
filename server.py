@@ -35,7 +35,6 @@ from flask import Flask, request, session, g, redirect, url_for, abort, \
 
 # ODM mongoengine
 from flask_mongoengine import MongoEngine
-from model import *
 # import markdown
 import misaka
 
@@ -48,7 +47,10 @@ from wtforms import form, fields, validators
 # 日志模块
 import logging
 import logging.config
-logging.config.fileConfig("logging.conf")
+from os import path
+log_file_path = path.join(path.dirname(path.abspath(__file__)), 'logging.conf')
+#logging.config.fileConfig("logging.conf")
+logging.config.fileConfig(log_file_path)
 logger = logging.getLogger("root")
 
 # 创建应用
@@ -270,7 +272,6 @@ class CustomizedAdminIndexView(admin.AdminIndexView):
 def unauthorized_handler():
     return 'Unauthorized'
 
-
 # 结束
 
 
@@ -446,7 +447,8 @@ def article(article_id):
     article = Article.objects(id=article_id).first()
     # 使用flask.Markup进行转义
     article.content = Markup(misaka.html(article.content))
-    soup = BeautifulSoup(article.content)
+    # 指定使用lxml解析html，如不指定，默认使用html5lib
+    soup = BeautifulSoup(article.content, 'lxml')
     # 为每个<h'x'>标签添加id，以便需要时进行定位
     from re import compile
     a_template = '<a href="#{id}">{value}</a>'
@@ -465,7 +467,8 @@ def article(article_id):
     # 将修饰过到内容转换回来
     soup_string = str(soup.body.contents)
     # 去除转换过程中生成的的多余换行符 TODO 查看beautifulsoup API文档，能否在转换过程中不生成多余字符
-    article.content = Markup(soup_string[1:len(soup_string) - 1].replace(r", '\n\n',", "").replace(r", '\n'", ""))
+    #article.content = Markup(soup_string[1:len(soup_string) - 1].replace(r", '\n\n',", "").replace(r", '\n'", ""))
+    article.content = Markup(soup_string[1:len(soup_string) - 1].replace(r", '\n',", "").replace(r", '\n'", ""))
 
     return render_template('article.html', article=article, mode='release', article_contents=article_contents)
 
@@ -634,6 +637,26 @@ def comments_corr_article(article_id):
         comment['user_info'] = User.objects(id=comment.user_info.id).first()
     return json.dumps(comments)
 
+
+# 接口
+# 搜索
+# TODO MOCK版，待完成
+@app.route('/search', methods=['POST'])
+def search():
+    if request.method != 'POST':
+        return redirect(url_for('index'))
+    query_condition = request.form.get('query', None)
+    if query_condition:
+        return redirect(url_for('search_results', query_condition=query_condition))
+    else:
+        return redirect(url_for('index'))
+
+# 页面
+# 搜索结果
+# TODO MOCK版，待完成
+@app.route('/p/<query_condition>')
+def results():
+    return None
 
 
 # 启动服务
