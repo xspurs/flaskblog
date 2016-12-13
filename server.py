@@ -45,11 +45,17 @@ from werkzeug.security import generate_password_hash, check_password_hash
 # wtforms
 from wtforms import form, fields, validators
 
+# 日志模块
+import logging
+import logging.config
+logging.config.fileConfig("logging.conf")
+logger = logging.getLogger("root")
+
 # 创建应用
 app = Flask(__name__)
 
 # 从配置文件中读取配置
-app.config.from_pyfile('app.cfg')
+app.config.from_pyfile('app.conf')
 
 # 不太明白这个的作用，看文档？！
 app.config.from_envvar('FLASKR_SETTINGS', silent=True)
@@ -436,6 +442,7 @@ from decorators import *
 @app.route('/article/<string:article_id>')
 @view_increase_wrapper
 def article(article_id):
+    logger.info("============================enter article pages===================================")
     article = Article.objects(id=article_id).first()
     # 使用flask.Markup进行转义
     article.content = Markup(misaka.html(article.content))
