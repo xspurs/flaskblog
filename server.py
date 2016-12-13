@@ -432,7 +432,9 @@ def articles_classify_show(classification_id):
 # 文章详情
 # 文章生成目录，方便查看，可以使用goose或html5lib（最终选型：beautifulsoup4）
 # TODO 将生成目录功能抽取出来
+from decorators import *
 @app.route('/article/<string:article_id>')
+@view_increase_wrapper
 def article(article_id):
     article = Article.objects(id=article_id).first()
     # 使用flask.Markup进行转义
