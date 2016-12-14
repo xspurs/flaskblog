@@ -36,7 +36,7 @@
         {% for article in articles %}
             <li>
                 <h2>
-                    <a href="/article/{{ article.id }}">{{ article.title }}</a>
+                    <a href="{{ url_for('article', article_id=article.id) }}">{{ article.title }}</a>
                 </h2>
             </li>
         {% else %}

@@ -49,8 +49,8 @@ import logging
 import logging.config
 from os import path
 log_file_path = path.join(path.dirname(path.abspath(__file__)), 'logging.conf')
-#logging.config.fileConfig("logging.conf")
 logging.config.fileConfig(log_file_path)
+# TODO 使用的日志移入配置项，根据不同环境使用不同logger
 logger = logging.getLogger("root")
 
 # 创建应用
@@ -397,8 +397,13 @@ def protected():
 
 # 页面
 # 全部文章列表
-@app.route('/articles', methods=['GET'])
-def articles_all_show():
+@app.route('/articles', defaults={'page': 1})
+@app.route('/articles/page-<int:page>', methods=['GET'])
+def articles(page):
+    # 分页相关
+    start = (page - 1) * number_per_page
+    limit = start + number_per_page
+    logger.info("===============当前页数=====================" + str(page))
     tags = request.args.get('tags')
     classification = request.args.get('classification')
     if tags and classification:
@@ -419,7 +424,7 @@ def articles_all_show():
     elif not tags and classification:
         articles = Article.objects(classification=classification).order_by('-create_time')
     else:
-        articles = Article.objects.order_by('-create_time')
+        articles = Article.objects[start:limit]# .order_by('-create_time')
     return render_template('articles.html', articles=articles)
 
 # 接口
@@ -469,8 +474,11 @@ def article(article_id):
     # 去除转换过程中生成的的多余换行符 TODO 查看beautifulsoup API文档，能否在转换过程中不生成多余字符
     #article.content = Markup(soup_string[1:len(soup_string) - 1].replace(r", '\n\n',", "").replace(r", '\n'", ""))
     article.content = Markup(soup_string[1:len(soup_string) - 1].replace(r", '\n',", "").replace(r", '\n'", ""))
+    # 是否需要按层级缩进显示目录
+    need_indent = len({value for value in article_contents.values()}) != 1
 
-    return render_template('article.html', article=article, mode='release', article_contents=article_contents)
+    return render_template('article.html', article=article, mode='release',
+                           article_contents=article_contents, need_indent=need_indent)
 
 
 # 页面
@@ -647,16 +655,19 @@ def search():
         return redirect(url_for('index'))
     query_condition = request.form.get('query', None)
     if query_condition:
-        return redirect(url_for('search_results', query_condition=query_condition))
+        return redirect(url_for('results', query_condition=query_condition))
     else:
         return redirect(url_for('index'))
 
 # 页面
 # 搜索结果
 # TODO MOCK版，待完成
-@app.route('/p/<query_condition>')
-def results():
-    return None
+@app.route('/p/<string:query_condition>')
+def results(query_condition):
+    #articles = Article.objects(content__contains=query_condition)
+    # 按文章题目搜索
+    articles = Article.objects(title__contains=query_condition)
+    return render_template('results.html', articles=articles)
 
 
 # 启动服务
@@ -675,5 +686,7 @@ if __name__ == '__main__':
     admin.add_view()
     '''
     # 结束
+    # 每页显示条数
+    number_per_page = app.config['NUMBER_PER_PAGE']
 
     app.run(host=app.config['APP_HOST'], port=app.config['APP_PORT'])  # host='192.168.32.66', port=5000

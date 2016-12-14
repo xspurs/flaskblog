@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}
+    查询结果
+{% endblock %}
+
+<!-- CSS/JS Beginning -->
+{% block head %}
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/github-markdown.css') }}">
+    <script src="{{ url_for('static', filename='js/lib/vue.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/lib/jquery-1.11.2.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/lib/vue-strap.js') }}"></script>
+{% endblock %}
+<!-- CSS/JS Ending -->
+
+{% block body %}
+    <div id="app">
+        <ul>
+            {% for article in articles %}
+                <li><a href="{{ url_for('article', article_id=article.id) }}">{{ article.title }}</a></li>
+            {% else %}
+                什么都没有搜索到<a href="{{ url_for('index') }}">回到首页</a>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}
+
+{% block foot %}
+
+{% endblock %}

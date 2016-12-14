@@ -34,7 +34,7 @@
             <a class="blog-nav-item {% block index_active %}{% endblock %}" href="/">首页</a>
             <a class="blog-nav-item {% block about_active %}{% endblock %}" href="/about">关于</a>
             <form class="navbar-form navbar-right search-form" method="post" action="{{ url_for('search') }}">
-                <input type="text" class="form-control col-lg-8" placeholder="搜索">
+                <input type="text" name="query" class="form-control col-lg-8" placeholder="搜索">
             </form>
         </nav>
     </div>

@@ -26,6 +26,10 @@
             text-decoration: none;
             display: inline-block;
         }
+        #article-contents {
+            padding: 0 45px;
+            background-color: #f5f5f5;
+        }
     </style>
     <script src="{{ url_for('static', filename='js/lib/vue.js') }}"></script>
     <script src="{{ url_for('static', filename='js/lib/jquery-1.11.2.min.js') }}"></script>
@@ -157,11 +161,11 @@
         <div>阅读量：{{ article.view_number }}</div>
     </div>
     <!-- 文章目录 -->
-    <div id="article-contents">
-        {# 按目录层级，缩进显示 #}
+    <div id="article-contents" class="markdown-body">
+        {# 按目录层级，缩进显示(在需要进行缩进的前提下) #}
         {% for article_content, indent in article_contents.items() %}
             <p>
-                {{ indent * '　　' }}{{ article_content }}
+                {{ (indent * '　　') if need_indent }}{{ article_content }}
             </p>
         {% else %}
 
@@ -170,7 +174,7 @@
 
     <!-- 文章类别 -->
     <div id="article-classification">
-        <a href="/articles?classification={{ article.classification.id }}">{{ article.classification.name }}</a>
+        <a href="{{ url_for('articles', classification=article.classification.id) }}">{{ article.classification.name }}</a>
     </div>
     <!-- 文章摘要 -->
     <div id="article-abstract" class="markdown-body">
@@ -202,6 +206,7 @@
         {% endfor %}
     {% endmacro %}
 
+    {# 发布模式 #}
     {% if mode == 'release' %}
         <div id="comment">
             <div class="comment-details">
@@ -294,11 +299,12 @@
         </div>
 
         <div>
-            <a href="/articles">返回文章列表</a>
+            <a href="{{ url_for('articles') }}">返回文章列表</a>
         </div>
     {% endif %}
     <!-- end of comment -->
 
+    {# 预览模式 #}
     {% if mode == 'preview' %}
         <input type="button" value="确认发布">
         <input type="button" value="返回修改">
