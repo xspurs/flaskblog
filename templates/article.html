@@ -161,6 +161,7 @@
         <div>阅读量：{{ article.view_number }}</div>
     </div>
     <!-- 文章目录 -->
+    {% if article_contents %}
     <div id="article-contents" class="markdown-body">
         {# 按目录层级，缩进显示(在需要进行缩进的前提下) #}
         {% for article_content, indent in article_contents.items() %}
@@ -171,6 +172,7 @@
 
         {% endfor %}
     </div>
+    {% endif %}
 
     <!-- 文章类别 -->
     <div id="article-classification">

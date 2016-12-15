@@ -403,7 +403,6 @@ def articles(page):
     # 分页相关
     start = (page - 1) * number_per_page
     limit = start + number_per_page
-    logger.info("===============当前页数=====================" + str(page))
     tags = request.args.get('tags')
     classification = request.args.get('classification')
     if tags and classification:
@@ -417,15 +416,22 @@ def articles(page):
         """
         tag_in_db = Tag.objects(name=tags).first()
         # 多条件查询，使用Q函数进行包装，通过|、&进行或、且操作
-        articles = Article.objects(Q(tags=tag_in_db) & Q(classification=classification)).order_by('-create_time')
+        articles = Article.objects(Q(tags=tag_in_db) & Q(classification=classification))\
+        .order_by('-create_time')[start:limit]
+        count = Article.objects(Q(tags=tag_in_db) & Q(classification=classification)).count()
     elif tags and not classification:
         tag_in_db = Tag.objects(name=tags).first()
-        articles = Article.objects(tags=tag_in_db).order_by('-create_time')
+        articles = Article.objects(tags=tag_in_db).order_by('-create_time')[start:limit]
+        count = Article.objects(tags=tag_in_db).count()
     elif not tags and classification:
-        articles = Article.objects(classification=classification).order_by('-create_time')
+        articles = Article.objects(classification=classification).order_by('-create_time')[start:limit]
+        count = Article.objects(classification=classification).count()
     else:
-        articles = Article.objects[start:limit]# .order_by('-create_time')
-    return render_template('articles.html', articles=articles)
+        articles = Article.objects.order_by('-create_time')[start:limit]  # .order_by('-create_time')
+        count = Article.objects.count()
+    from pagination import Pagination
+    page_obj = Pagination(page, number_per_page, count)
+    return render_template('articles.html', articles=articles, pagination=page_obj)
 
 # 接口
 # 分类文章列表
@@ -661,13 +667,35 @@ def search():
 
 # 页面
 # 搜索结果
-# TODO MOCK版，待完成
-@app.route('/p/<string:query_condition>')
-def results(query_condition):
-    #articles = Article.objects(content__contains=query_condition)
+@app.route('/q/<string:query_condition>', defaults={'page': 1})
+@app.route('/q/<string:query_condition>/page-<int:page>')
+def results(query_condition, page):
     # 按文章题目搜索
-    articles = Article.objects(title__contains=query_condition)
-    return render_template('results.html', articles=articles)
+    # @see: http://docs.mongoengine.org/guide/querying.html#limiting-and-skipping-results
+    start = (page - 1) * number_per_page
+    limit = page * number_per_page
+    articles = Article.objects(title__contains=query_condition).order_by('-create_time')[start:limit]
+    count = Article.objects(title__contains=query_condition).count()
+    from pagination import Pagination
+    page_obj = Pagination(page, number_per_page, count)
+    return render_template('results.html', articles=articles, pagination=page_obj)
+
+# TODO 移入utils中
+def url_for_other_page(page):
+    '''
+    两种类型的参数：
+    request.view_args   REST风格的参数
+    request.args        query parameter风格的参数
+    由于本博客未统一使用某种风格，因此两种参数均需带上
+    '''
+    view_args = request.view_args.copy()
+    view_args['page'] = page
+    for k, v in request.args.items():
+        view_args[k] = v
+    return url_for(request.endpoint, **view_args)
+
+# 注册函数，注册后可在全局使用
+app.jinja_env.globals['url_for_other_page'] = url_for_other_page
 
 
 # 启动服务
@@ -690,3 +718,4 @@ if __name__ == '__main__':
     number_per_page = app.config['NUMBER_PER_PAGE']
 
     app.run(host=app.config['APP_HOST'], port=app.config['APP_PORT'])  # host='192.168.32.66', port=5000
+
