@@ -5,7 +5,6 @@
 
 <!-- CSS/JS Beginning -->
 {% block head %}
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/github-markdown.css') }}">
     <style>
         .markdown-body {
@@ -36,7 +35,6 @@
     <script src="{{ url_for('static', filename='js/lib/vue-strap.js') }}"></script>
     <script>
         $(function() {
-            //$('.markdown-body').html('<code>class Person(object):</code>')
             Vue.config.debug = true
             Vue.config.delimiters = ['${', '}']
             var vm = new Vue({
@@ -95,60 +93,6 @@
 <!-- TODO 增加摘要或者内容等为空时的判断 -->
 {% block body %}
 <div id="app">
-
-    <!-- Vue-strap 试验
-    <affix>
-        <nav class="sidebar">
-            <ul>
-                <li>文章列表</li>
-                <li>评论列表</li>
-            </ul>
-        </nav>
-    </affix>
-
-    <button class="btn btn-default btn-sm" @click="showTop = !showTop">点击</button>
-    <button class="btn btn-default btn-sm" @click="showRight = !showRight">点击</button>
-
-    <alert
-            :show.sync="showRight"
-            :duration="3000"
-            type="success"
-            width="400px"
-            placement="top-right"
-            dismissable
-            >
-        <span class="icon-ok-circled alert-icon-float-left"></span>
-        <strong>Well Done!</strong>
-        <p>You successfully read this important alert message.</p>
-    </alert>
-
-    <alert
-            :show.sync="showTop"
-            :duration="3000"
-            type="danger"
-            width="400px"
-            placement="top"
-            dismissable>
-        <span class="icon-info-circled alert-icon-float-left"></span>
-        <strong>Heads up!</strong>
-        <p>This alert needs your attention.</p>
-    </alert>
-
-    <carousel>
-        <slider>
-            <img src="http://placehold.it/200x200?text=one">
-            <div class="carousel-caption">
-                ...
-            </div>
-        </slider>
-        <slider>
-            <img src="http://placehold.it/200x200?text=two">
-        </slider>
-        <slider>
-            <img src="http://placehold.it/200x200?text=three">
-        </slider>
-    </carousel>
-    -->
 
     <!--
     <container>
@@ -292,16 +236,6 @@
                 </div>
                 -->
             </div>
-
-        <!--
-        </div>
-        </container>
-        -->
-
-        </div>
-
-        <div>
-            <a href="{{ url_for('articles') }}">返回文章列表</a>
         </div>
     {% endif %}
     <!-- end of comment -->
@@ -311,6 +245,7 @@
         <input type="button" value="确认发布">
         <input type="button" value="返回修改">
     {% endif %}
+
 </div>
 {% endblock %}
 

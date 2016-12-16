@@ -3,7 +3,6 @@ from math import ceil
 
 # 分页相关类
 class Pagination(object):
-
     def __init__(self, page, per_page, total_count):
         self.page = page
         self.per_page = per_page
@@ -11,7 +10,7 @@ class Pagination(object):
 
     @property
     def pages(self):
-        return int(ceil(self.total_count / float(self.per_page)))
+        return ceil(self.total_count / float(self.per_page))
 
     @property
     def has_prev(self):
@@ -25,7 +24,8 @@ class Pagination(object):
                    right_current=5, right_edge=2):
         last = 0
         for num in range(1, self.pages + 1):
-            if num <= left_edge or (num > self.page - left_current - 1 and num < self.page + right_current) or num > self.pages - right_edge:
+            if num <= left_edge or (self.page - left_current - 1 < num < self.page + right_current) \
+                    or num > self.pages - right_edge:
                 if last + 1 != num:
                     yield None
                 yield num

@@ -48,10 +48,17 @@ from wtforms import form, fields, validators
 import logging
 import logging.config
 from os import path
+
 log_file_path = path.join(path.dirname(path.abspath(__file__)), 'logging.conf')
 logging.config.fileConfig(log_file_path)
 # TODO 使用的日志移入配置项，根据不同环境使用不同logger
 logger = logging.getLogger("root")
+
+# 分页功能
+# TODO 能否通过装饰器实现
+from pagination import Pagination
+# RSS
+from werkzeug.contrib.atom import AtomFeed
 
 # 创建应用
 app = Flask(__name__)
@@ -75,7 +82,6 @@ db = MongoEngine(app)
 # flask_login相关，考虑从本文件中摘除
 # 开始
 login_manager = flask_login.LoginManager(app)
-
 
 # TODO 将beautifulsoup从server.py中摘除，作为单独服务使用
 from bs4 import BeautifulSoup
@@ -185,6 +191,7 @@ class ArticleView(AuthModelView):
         ''
     }
     '''
+
     # 2016-06-27
     # 在基础上扩展，碉堡
     @expose('/edit')
@@ -265,12 +272,14 @@ class CustomizedAdminIndexView(admin.AdminIndexView):
         flask_login.logout_user()
         return redirect(url_for('.index'))
 
+
 # 结束
 
 
 @login_manager.unauthorized_handler
 def unauthorized_handler():
     return 'Unauthorized'
+
 
 # 结束
 
@@ -284,18 +293,11 @@ def close_db(error):
 
 # 页面
 # 博客首页
+'''
 @app.route('/')
 def index():
     classifications = Classification.objects.order_by('+name')
     article = Article.objects.order_by('-create_time').first()
-    '''
-    if article:
-        article.content = Markup(misaka.html(article.content))
-    return render_template('index.html', classifications=classifications, article=article)
-    '''
-
-    '''
-    '''
     # 添加最新发表文章列表，取最新发表的五篇文章
     recent_articles = Article.objects.order_by('-create_time').limit(5)
     if recent_articles:  # 文章不存在时，不进行转换
@@ -304,7 +306,26 @@ def index():
         article.content = Markup(misaka.html(article.content))
     return render_template('index.html', classifications=classifications, article=article,
                 next_article=recent_articles[1], recent_articles=recent_articles)
+'''
 
+
+@app.route('/', defaults={'page': 1}, methods=['GET'])
+@app.route('/page-<int:page>', methods=['GET'])
+def index(page):
+    start = (page - 1) * number_per_page
+    limit = page * number_per_page
+    count = Article.objects.count()
+    classifications = Classification.objects.order_by('+name')
+    articles = Article.objects.order_by('-create_time')[start:limit]
+    pagination = Pagination(page, number_per_page, count)
+    # 添加最新发表文章列表，取最新发表的五篇文章
+    recent_articles = Article.objects.order_by('-create_time').limit(5)
+    if recent_articles:  # 文章不存在时，不进行转换
+        article = recent_articles[0]
+        # articles[0].content = Markup(misaka.html(articles[0].content))
+        article.content = Markup(misaka.html(article.content))
+    return render_template('index.html', classifications=classifications,
+                           articles=articles, recent_articles=recent_articles, pagination=pagination)
 
 
 # 接口
@@ -397,7 +418,7 @@ def protected():
 
 # 页面
 # 全部文章列表
-@app.route('/articles', defaults={'page': 1})
+@app.route('/articles', defaults={'page': 1}, methods=['GET'])
 @app.route('/articles/page-<int:page>', methods=['GET'])
 def articles(page):
     # 分页相关
@@ -416,8 +437,8 @@ def articles(page):
         """
         tag_in_db = Tag.objects(name=tags).first()
         # 多条件查询，使用Q函数进行包装，通过|、&进行或、且操作
-        articles = Article.objects(Q(tags=tag_in_db) & Q(classification=classification))\
-        .order_by('-create_time')[start:limit]
+        articles = Article.objects(Q(tags=tag_in_db) & Q(classification=classification)) \
+                       .order_by('-create_time')[start:limit]
         count = Article.objects(Q(tags=tag_in_db) & Q(classification=classification)).count()
     elif tags and not classification:
         tag_in_db = Tag.objects(name=tags).first()
@@ -429,9 +450,9 @@ def articles(page):
     else:
         articles = Article.objects.order_by('-create_time')[start:limit]  # .order_by('-create_time')
         count = Article.objects.count()
-    from pagination import Pagination
     page_obj = Pagination(page, number_per_page, count)
     return render_template('articles.html', articles=articles, pagination=page_obj)
+
 
 # 接口
 # 分类文章列表
@@ -445,12 +466,13 @@ def articles_classify_show(classification_id):
     return render_template('articles.html', articles=articles)
 """
 
+from decorators import *
+
 
 # 页面
 # 文章详情
 # 文章生成目录，方便查看，可以使用goose或html5lib（最终选型：beautifulsoup4）
 # TODO 将生成目录功能抽取出来
-from decorators import *
 @app.route('/article/<string:article_id>')
 @view_increase_wrapper
 def article(article_id):
@@ -469,7 +491,8 @@ def article(article_id):
     for index, element in enumerate(soup.find_all(compile('^h[1-9]{1}$'))):
         element['id'] = index
         # 目录及对应缩进数
-        article_contents.setdefault(Markup(a_template.format(id=index, value=element.string)), int(element.name[1:]) - 1)
+        article_contents.setdefault(Markup(a_template.format(id=index, value=element.string)),
+                                    int(element.name[1:]) - 1)
         # 为每个<h'x'>标签添加permalink图标(¶)
         html_tag_a = soup.new_tag('a', **{'class': 'headerlink', 'href': '#' + str(index)})
         html_tag_a.string = '¶'
@@ -478,7 +501,7 @@ def article(article_id):
     # 将修饰过到内容转换回来
     soup_string = str(soup.body.contents)
     # 去除转换过程中生成的的多余换行符 TODO 查看beautifulsoup API文档，能否在转换过程中不生成多余字符
-    #article.content = Markup(soup_string[1:len(soup_string) - 1].replace(r", '\n\n',", "").replace(r", '\n'", ""))
+    # article.content = Markup(soup_string[1:len(soup_string) - 1].replace(r", '\n\n',", "").replace(r", '\n'", ""))
     article.content = Markup(soup_string[1:len(soup_string) - 1].replace(r", '\n',", "").replace(r", '\n'", ""))
     # 是否需要按层级缩进显示目录
     need_indent = len({value for value in article_contents.values()}) != 1
@@ -501,7 +524,6 @@ def article_preview():
     # article[kkk]
     return render_template('article.html', article=article, mode='preview')
 '''
-
 
 # 页面
 # 新建文章
@@ -543,7 +565,8 @@ def comment_post():
     # ==========
     """
     data = request.get_json(force=True)
-    user = User(name=data.get('username'), email=data.get('useremail'), link=data.get('userlink'), login_id='default_login_id', password='default_password').save()
+    user = User(name=data.get('username'), email=data.get('useremail'), link=data.get('userlink'),
+                login_id='default_login_id', password='default_password').save()
     if data.get('parent_id'):
         parent_comment = Comment.objects(id=data.get('parent_id')).first()
         comment = Comment(content=data.get('content'), display_flag=app.config['DEFAULT_DISPLAY_FLAG'], user_info=user,
@@ -556,14 +579,7 @@ def comment_post():
                           user_info=user).save()  # cascade=True
         article.comments.append(comment)
         article.save()
-    return '评论成功', 200
-    # TODO 返回HTTP状态码
-    """
-    return make_response(status=200)
-    response = make_response()
-    response.status=200
-    return response
-    """
+    return make_response('评论成功', 200)
 
 
 # 接口
@@ -571,7 +587,7 @@ def comment_post():
 @app.route('/comment/<string:comment_id>', methods=['DELETE'])
 def comment_delete(comment_id):
     Comment.objects(id=comment_id).first().delete()
-    return '', 200
+    return make_response('', 200)
 
 
 # 接口
@@ -579,7 +595,7 @@ def comment_delete(comment_id):
 @app.route('/article/<string:article_id>', methods=['DELETE'])
 def article_delete(article_id):
     Article.objects(id=article_id).first().delete()
-    return '', 200
+    return make_response('', 200)
 
 
 # 接口
@@ -614,7 +630,8 @@ def article_post():
     if not id:
         article_posted = Article(title=title, classification=classification_doc, abstract=abstract,
                                  content=content).save()
-        return redirect('/article/' + str(article_posted.id))
+        # return redirect('/article/' + str(article_posted.id))
+        return url_for('article', article_post.id)
     else:
         Article.objects(id=id).update_one(title=title,
                                           classification=classification_doc, abstract=abstract,
@@ -627,16 +644,8 @@ def article_post():
         article_putted.content = content
         article_putted.reload()
         """
-        return redirect('/article/' + id)
-
-
-# Bootstrap Example
-@app.route('/example')
-def example():
-    classifications = Classification.objects
-    article = Article.objects.order_by('-create_time').first()
-    article.content = Markup(misaka.html(article.content))
-    return render_template('new.html', classifications=classifications, article=article)
+        # return redirect('/article/' + id)
+        return url_for('article', id)
 
 
 # 接口
@@ -654,7 +663,6 @@ def comments_corr_article(article_id):
 
 # 接口
 # 搜索
-# TODO MOCK版，待完成
 @app.route('/search', methods=['POST'])
 def search():
     if request.method != 'POST':
@@ -664,6 +672,7 @@ def search():
         return redirect(url_for('results', query_condition=query_condition))
     else:
         return redirect(url_for('index'))
+
 
 # 页面
 # 搜索结果
@@ -676,27 +685,68 @@ def results(query_condition, page):
     limit = page * number_per_page
     articles = Article.objects(title__contains=query_condition).order_by('-create_time')[start:limit]
     count = Article.objects(title__contains=query_condition).count()
-    from pagination import Pagination
     page_obj = Pagination(page, number_per_page, count)
     return render_template('results.html', articles=articles, pagination=page_obj)
 
+
+# 接口
+# RSS
+@app.route('/rss')
+def rss():
+    feed = AtomFeed('我的博客', feed_url=request.url, url=request.url_root)
+    articles = Article.objects.order_by('-create_time')[0:number_per_page]
+    for article in articles:
+        feed.add(article.title, Markup(misaka.html(article.content)), content_type='html',
+                 author='博客老板', url=request.url_root + url_for('article', article_id=article.id),
+                 updated=article.create_time)
+    return feed.get_response()
+
+    '''
+    for post in posts['data']:
+        post_entry = post['preview'] if post['preview'] else post['body']
+        feed.add(post['title'], md(post_entry),
+                 content_type='html',
+                 author=post['author'],
+                 url=make_external(
+                     url_for('single_post', permalink=post['permalink'])),
+                 updated=post['date'])
+    return feed.get_response()
+    '''
+
+
+# 统一处理request，相当于postHandler，可以看下源代码
+# @see: http://www.tuicool.com/articles/YBbeM33
+@app.after_request
+def app_after_request(response):
+    # 为静态资源添加缓存
+    if request.endpoint != 'static':
+        return response
+    response.cache_control.max_age = 1200  # 'no-cache'
+    # 直接通过这种方式制定的expire无效
+    # response.expire = 'Fri, 31 Dec 1999 16:00:00 GMT'
+    # 有效
+    # response.headers['Expire'] = 'Fri, 31 Dec 1999 16:00:00 GMT'
+    # response.headers['Cache-Control'] = 'no-cache'
+    return response
+
+
 # TODO 移入utils中
 def url_for_other_page(page):
-    '''
+    """
     两种类型的参数：
     request.view_args   REST风格的参数
     request.args        query parameter风格的参数
     由于本博客未统一使用某种风格，因此两种参数均需带上
-    '''
+    """
     view_args = request.view_args.copy()
     view_args['page'] = page
     for k, v in request.args.items():
         view_args[k] = v
     return url_for(request.endpoint, **view_args)
 
+
 # 注册函数，注册后可在全局使用
 app.jinja_env.globals['url_for_other_page'] = url_for_other_page
-
 
 # 启动服务
 if __name__ == '__main__':
@@ -718,4 +768,3 @@ if __name__ == '__main__':
     number_per_page = app.config['NUMBER_PER_PAGE']
 
     app.run(host=app.config['APP_HOST'], port=app.config['APP_PORT'])  # host='192.168.32.66', port=5000
-

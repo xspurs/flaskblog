@@ -22,7 +22,7 @@
 {% endblock %}
 
 {% block body %}
-	<!--
+    <!--
 	<div id="welcome">
 		欢迎访问我的博客
 		<a href="/article">去写文章</a>
@@ -46,11 +46,14 @@
 
     <div class="row">
         <div class="col-sm-8 blog-main">
-            {% if article %}
+            {% for article in articles %}
                 <div class="blog-post">
                     <!-- 文章类别 -->
                     <div id="article-classification">
+                        <!--
                         <a href="/articles?classification={{ article.classification.id }}">{{ article.classification.name }}</a>
+                        -->
+                        <a href="{{ url_for('articles', classifications=article.classification.id) }}">{{ article.classification.name }}</a>
                     </div>
                     <!-- 文章题目 -->
                     <div id="article-title">
@@ -66,21 +69,41 @@
                     </article>
                     -->
                     <div>
-                        <a href="/article/{{ article.id }}">查看全部</a>
+                        <a href="{{ url_for('article', article_id=article.id) }}">文章详情</a>
                     </div>
+                    <hr>
                 </div>
 
-                <nav>
-                    <ul class="pager">
-                        <!--
-                        <li><a href="#">上一篇</a></li>
-                        -->
-                        <li><a href="#">下一篇</a></li>
-                    </ul>
-                </nav>
             {% else %}
                 <div>暂无文章</div>
-            {% endif %}
+            {% endfor %}
+            <nav>
+                <!--
+                <ul class="pager">
+                    <li><a href="#">上一篇</a></li>
+                    <li><a href="#">下一篇</a></li>
+                </ul>
+                -->
+                <!-- 分页页码 -->
+                {% if pagination and pagination.pages > 1 %}
+                    <div class="pagination-wrap">
+                        <ul class="pagination">
+                            {% for page in pagination.iter_pages() %}
+                                {% if page %}
+                                    <li {% if page == pagination.page %}class="active"{% endif %}>
+                                        <a href="{{ url_for_other_page(page) }}">{{ page }}</a>
+                                    </li>
+                                {% else %}
+                                    <li><span class=ellipsis>…</span></li>
+                                {% endif %}
+                            {% endfor %}
+                            {% if pagination.has_next %}
+                                <li><a href="{{ url_for_other_page(pagination.page + 1) }}">&raquo;</a></li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                {% endif %}
+            </nav>
         </div>
         <!-- /.blog-main -->
 
@@ -96,23 +119,27 @@
                 <h4>最新发表</h4>
                 <ol class="list-unstyled">
                     {% for recent_article in recent_articles %}
-                        <li><a href="/article/{{ recent_article.id }}">{{ recent_article.title }}</a></li>
+                        <li>
+                            <a href="{{ url_for('article', article_id=recent_article.id) }}">{{ recent_article.title }}</a>
+                        </li>
                     {% else %}
                         <div>暂无最新发表</div>
                     {% endfor %}
                 </ol>
             </div>
-            <div class="sidebar-module">
+            <div class="sidebar-module sidebar-module-inset">
                 <h4>文章分类</h4>
                 <ol class="list-unstyled">
                     {% for classification in classifications %}
-                        <li><a href="/articles?classification={{ classification.id }}">{{ classification.name }}</a></li>
+                        <li>
+                            <a href="{{ url_for('articles', classification=classification.id) }}">{{ classification.name }}</a>
+                        </li>
                     {% else %}
                         <div>暂无文章分类</div>
                     {% endfor %}
                 </ol>
             </div>
-            <div class="sidebar-module">
+            <div class="sidebar-module sidebar-module-inset">
                 <h4>联系我</h4>
                 <ol class="list-unstyled">
                     <li><a href="https://github.com/xitongjiagoushi">GitHub</a></li>
@@ -125,7 +152,7 @@
     </div>
     <!-- /.row -->
 
-	{{ super() }}
+    {{ super() }}
 {% endblock %}
 
 {% block foot %}
