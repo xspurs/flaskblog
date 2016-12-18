@@ -29,14 +29,14 @@
                     {% for page in pagination.iter_pages() %}
                         {% if page %}
                             <li {% if page == pagination.page %}class="active"{% endif %}>
-                                <a href="{{ url_for_other_page(page) }}">{{ page }}</a>
+                                <a href="{{ url_for_other_pages(page) }}">{{ page }}</a>
                             </li>
                         {% else %}
                             <li><span class=ellipsis>…</span></li>
                         {% endif %}
                     {% endfor %}
                     {% if pagination.has_next %}
-                        <li><a href="{{ url_for_other_page(pagination.page + 1) }}">&raquo;</a></li>
+                        <li><a href="{{ url_for_other_pages(pagination.page + 1) }}">&raquo;</a></li>
                     {% endif %}
                 </ul>
             </div>

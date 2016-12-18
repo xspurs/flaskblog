@@ -29,6 +29,7 @@ __author__ = 'Orclover'
 # 10. 使用pygments进行代码高亮显示
 # 11. 发布文章时，支持两种格式——富文本编辑/Markdown
 # 13. flask-admin中的级联删除/显示问题，如对于评论内容的增删改查等等
+# 16. 使用gunicorn + supervisor部署
 
 
 from flask import Flask, request, session, g, redirect, url_for, abort, \
@@ -614,8 +615,6 @@ def article_post():
     # content = misaka.html(request.form.get('content'))
     # 保存数据库时，不保存HTML格式文本；在读取后，显示前，做HTML格式处理
     content = request.form.get('content')
-    # 通过model中的默认值去添加，在此不再生成
-    # create_time = datetime.datetime.now()
 
     '''
     移除文章中的Tags字段
@@ -631,7 +630,6 @@ def article_post():
     if not id:
         article_posted = Article(title=title, classification=classification_doc, abstract=abstract,
                                  content=content).save()
-        # return redirect('/article/' + str(article_posted.id))
         return url_for('article', article_post.id)
     else:
         Article.objects(id=id).update_one(title=title,
@@ -645,7 +643,6 @@ def article_post():
         article_putted.content = content
         article_putted.reload()
         """
-        # return redirect('/article/' + id)
         return url_for('article', id)
 
 
@@ -694,32 +691,25 @@ def results(query_condition, page):
 # RSS
 @app.route('/rss')
 def rss():
-    feed = AtomFeed('我的博客', feed_url=request.url, url=request.url_root)
-    articles = Article.objects.order_by('-create_time')[0:number_per_page]
+    feed = AtomFeed('IT技术博客', feed_url=request.url, url=request.url_root)
+    articles = Article.objects.order_by('-create_time')  # 将全部文章检出，而不只检出第一页 [0:number_per_page]
+    # python3中，已将urlparse.urljoin合并入urllib包中，变为urllib.parse.urljoin
+    from urllib.parse import urljoin
     for article in articles:
         feed.add(article.title, Markup(misaka.html(article.content)), content_type='html',
-                 author='博客老板', url=request.url_root + url_for('article', article_id=article.id),
+                 author='博客老板', url=urljoin(request.url_root, url_for('article', article_id=article.id)),
                  updated=article.create_time)
     return feed.get_response()
 
-    '''
-    for post in posts['data']:
-        post_entry = post['preview'] if post['preview'] else post['body']
-        feed.add(post['title'], md(post_entry),
-                 content_type='html',
-                 author=post['author'],
-                 url=make_external(
-                     url_for('single_post', permalink=post['permalink'])),
-                 updated=post['date'])
-    return feed.get_response()
-    '''
 
-
+# 404页面
 @app.errorhandler(404)
 def page_not_found(error):
     return make_response(render_template('404.html', title='404'), 404)
 
 
+# 自定义模板过滤器
+# 过滤时间格式
 @app.template_filter('format_date')
 def format_datetime_filter(input_value, _format='%Y-%m-%d %H:%M:%S'):
     if hasattr(input_value, 'strftime'):
@@ -743,8 +733,8 @@ def app_after_request(response):
     return response
 
 
-# TODO 移入utils中
-def url_for_other_page(page):
+@app.template_global('url_for_other_pages')
+def url_for_other_pages(page):
     """
     两种类型的参数：
     request.view_args   REST风格的参数
@@ -757,9 +747,6 @@ def url_for_other_page(page):
         view_args[k] = v
     return url_for(request.endpoint, **view_args)
 
-
-# 注册函数，注册后可在全局使用
-app.jinja_env.globals['url_for_other_page'] = url_for_other_page
 
 # 启动服务
 if __name__ == '__main__':
