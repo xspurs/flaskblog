@@ -15,6 +15,8 @@ __author__ = 'Orclover'
 # 3. 修改文章详情页面，主要在与子级评论和父级评论的渲染/展示
 # 12. 文章内容编辑
 # 3. classification的增删改查
+# 14. 添加404页面
+# 15. 添加日期格式转换
 
 # TODO todo-list
 # 1. 页面样式与页面风格
@@ -22,12 +24,11 @@ __author__ = 'Orclover'
 # 4. 文章的搜索功能，根据tags/classification
 # 6. 评论文章/评论评论时，应该由jQuery去添加元素，还是将整个的重新加载
 # 7. 纯接口，取回数据后，返回HTTP Status 200
-# 8. 发布评论时的前后端校
+# 8. 发布评论时的前后端校验
 # 9. 发布文章时的前后端校验
-# 10. 使用pygments进行代码高亮显
-# 11. 发布文章时，支持两种格式——富文本编辑/Markdown示
+# 10. 使用pygments进行代码高亮显示
+# 11. 发布文章时，支持两种格式——富文本编辑/Markdown
 # 13. flask-admin中的级联删除/显示问题，如对于评论内容的增删改查等等
-# 14. ?
 
 
 from flask import Flask, request, session, g, redirect, url_for, abort, \
@@ -712,6 +713,18 @@ def rss():
                  updated=post['date'])
     return feed.get_response()
     '''
+
+
+@app.errorhandler(404)
+def page_not_found(error):
+    return make_response(render_template('404.html', title='404'), 404)
+
+
+@app.template_filter('format_date')
+def format_datetime_filter(input_value, _format='%Y-%m-%d %H:%M:%S'):
+    if hasattr(input_value, 'strftime'):
+        return input_value.strftime(_format)
+    return input_value
 
 
 # 统一处理request，相当于postHandler，可以看下源代码
