@@ -185,6 +185,9 @@ def register():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
+    redirect_uri = request.args.get('redirect_uri')
+    action_uri = '/login'
+    from urllib.parse import quote
     if request.method == 'POST':
         is_remember = request.form.get('remember', False)
         login_id = request.form.get('loginid')
@@ -196,6 +199,8 @@ def login():
         user = User.objects(login_id=login_id).first()
         if not user:
             error = app.config['USER_NOT_EXISTS']
+            action_uri += '?redirect_uri=' + redirect_uri
+            action_uri = quote(action_uri)
         elif check_password_hash(user.password, password):
             '''
             user = User()
@@ -204,12 +209,16 @@ def login():
             '''
             # remember参数默认为False，设置为True后可通过Cookie记录用户登录状态
             flask_login.login_user(user, remember=is_remember)
-            # 经测试，query_param中没有next参数
-            # next = request.args.get('next')
-            return redirect(url_for('index'))
+            if redirect_uri:
+                return redirect(redirect_uri)
+            else:
+                return redirect(url_for('index'))
         else:
             error = app.config['PASSWORD_NOT_MATCH']
-    return render_template('login.html', error=error)
+            action_uri += '?redirect_uri=' + redirect_uri
+            action_uri = quote(action_uri)
+            # TODO --bugfix-- 用户名/密码错误导致页面刷新后，URL中的参数redirect_uri被decode
+    return render_template('login.html', error=error, redirect_uri=redirect_uri, action_uri=action_uri)
 
 
 # 接口
@@ -471,7 +480,7 @@ def rss():
 
 # 404页面
 @app.errorhandler(404)
-def page_not_found():
+def page_not_found(error):
     return make_response(render_template('404.html', title='404'), 404)
 
 

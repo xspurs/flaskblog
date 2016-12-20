@@ -33,7 +33,7 @@ class AuthModelView(ModelView):
         elif flask_login.current_user.type != 1:
             return redirect(url_for('wrong principal', next=request.url))
         '''
-        return redirect(url_for('login', next=request.url))
+        return redirect(url_for('login', redirect_uri=request.url))
 
 
 # 基类，为BaseView添加用户身份控制
@@ -45,7 +45,7 @@ class AuthBaseView(BaseView):
         return flask_login.current_user.is_authenticated
 
     def inaccessible_callback(self, name, **kwargs):
-        return redirect(url_for('login', next=request.url))
+        return redirect(url_for('login', redirect_uri=request.url))
 
 
 class UserView(AuthModelView):

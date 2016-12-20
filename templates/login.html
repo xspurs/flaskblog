@@ -12,25 +12,11 @@
 {% endblock %}
 
 {% block body %}
-    <!--
-    <h2>Login</h2>
-    -->
-    {#
-    {% if error %}<p class="error"><strong>Error:</strong> {{ error }}</p>{% endif %}
-    #}
-    <!--
-    <form action="{# {{ url_for('login') }} #}" method="post">
-        <dl>
-            <dt>Username:
-            <dd><input type="text" name="username">
-            <dt>Password:
-            <dd><input type="password" name="password">
-            <dd><input type="submit" value="Login">
-        </dl>
-    </form>
-    -->
     <div class="container login-body">
-        <form class="form-signin" method="post" action="/login">
+        <form class="form-signin" method="post" action="{{ action_uri }}">
+              {#
+              action="/login{% if redirect_uri %}{{ '?redirect_uri=' + redirect_uri }}{% endif %}">
+        #}
             <h2 class="form-signin-heading">登录</h2>
             <!-- 错误信息显示 -->
             {% if error %}
