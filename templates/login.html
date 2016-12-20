@@ -32,6 +32,10 @@
     <div class="container login-body">
         <form class="form-signin" method="post" action="/login">
             <h2 class="form-signin-heading">登录</h2>
+            <!-- 错误信息显示 -->
+            {% if error %}
+                <p class="error">{{ error }}</p>
+            {% endif %}
             <label for="inputUsername" class="sr-only">账号</label>
             <input name="loginid" type="text" id="inputEmail" class="form-control" placeholder="请输入您的账号" required autofocus>
             <label for="inputPassword" class="sr-only">密码</label>

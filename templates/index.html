@@ -118,13 +118,15 @@
                 -->
                 <h4>最新发表</h4>
                 <ol class="list-unstyled">
-                    {% for recent_article in recent_articles %}
-                        <li>
-                            <a href="{{ url_for('article', article_id=recent_article.id) }}">{{ recent_article.title }}</a>
-                        </li>
+                    {% if recent_articles %}
+                        {% for recent_article in recent_articles %}
+                            <li>
+                                <a href="{{ url_for('article', article_id=recent_article.id) }}">{{ recent_article.title }}</a>
+                            </li>
+                        {% endfor %}
                     {% else %}
                         <div>暂无最新发表</div>
-                    {% endfor %}
+                    {% endif %}
                 </ol>
             </div>
             <div class="sidebar-module sidebar-module-inset">

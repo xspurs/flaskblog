@@ -1,12 +1,3 @@
-/*
-原有代码，因最后将登录页面嵌入，因此注释
-body {
-  padding-top: 40px;
-  padding-bottom: 40px;
-  background-color: #eee;
-}
-*/
-
 .form-signin {
   max-width: 330px;
   padding: 15px;
@@ -41,10 +32,10 @@ body {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
 }
-
-/*
-自定义样式
-*/
 div.login-body {
   padding: 2rem 0 10rem 0;
+}
+/* 閿欒淇℃伅鏍峰紡 */
+p.error {
+  color: #ee6000;
 }
