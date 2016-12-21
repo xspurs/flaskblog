@@ -31,6 +31,8 @@ __author__ = 'Orclover'
 # 11. 发布文章时，支持两种格式——富文本编辑/Markdown
 # 13. flask-admin中的级联删除/显示问题，如对于评论内容的增删改查等等
 # 17. 优化文章类别页面（articles.htm），太丑
+# 19. 移动端页面适配
+# 20. 必要位置的日志
 
 
 from flask import Flask, request, session, g, redirect, url_for, abort, \
@@ -45,7 +47,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from wtforms import form, fields, validators
 
 # 日志模块
-import logging
 import logging.config
 from os import path
 
@@ -187,7 +188,7 @@ def register():
 def login():
     error = None
     redirect_uri = request.args.get('redirect_uri')
-    action_uri = '/login'
+    action_uri = request.url_rule.rule
     from urllib.parse import quote_plus
     if request.method == 'POST':
         is_remember = request.form.get('remember', False)
@@ -222,6 +223,7 @@ def login():
     # 用户验证错误时，需要对URL做处理
     if error:
         # 三种方式获取query param
+        # 通过这三个example可以熟悉下urllib.parse方法
         '''
         from urllib.parse import unquote
         abs_url = unquote(request.url)
@@ -241,8 +243,10 @@ def login():
         query_param = parse_result.query
         if query_param:
             action_uri += '?' + query_param
+            # OR
+            # action_uri = '?'.join([action_uri, query_param])
 
-    return render_template('login.html', error=error, redirect_uri=redirect_uri, action_uri=action_uri)
+    return render_template('login.html', error=error, action_uri=action_uri)
 
 
 # 接口
@@ -305,6 +309,7 @@ def articles(page):
     return render_template('articles.html', articles=articles, pagination=page_obj, classification=classification)
 
 # 装饰器
+# TODO 方法装饰器 －> 类装饰器（参考flask自身的@app.route）
 from decorators import *
 
 
