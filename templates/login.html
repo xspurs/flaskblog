@@ -14,9 +14,6 @@
 {% block body %}
     <div class="container login-body">
         <form class="form-signin" method="post" action="{{ action_uri }}">
-              {#
-              action="/login{% if redirect_uri %}{{ '?redirect_uri=' + redirect_uri }}{% endif %}">
-        #}
             <h2 class="form-signin-heading">登录</h2>
             <!-- 错误信息显示 -->
             {% if error %}

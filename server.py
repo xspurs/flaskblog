@@ -188,7 +188,7 @@ def login():
     error = None
     redirect_uri = request.args.get('redirect_uri')
     action_uri = '/login'
-    from urllib.parse import quote
+    from urllib.parse import quote_plus
     if request.method == 'POST':
         is_remember = request.form.get('remember', False)
         login_id = request.form.get('loginid')
@@ -218,14 +218,30 @@ def login():
     elif request.method == 'GET':
         # 为保证action中的URL一致
         if redirect_uri:
-            action_uri += '?redirect_uri=' + quote(redirect_uri, safe='')
+            action_uri += '?redirect_uri=' + quote_plus(redirect_uri)
     # 用户验证错误时，需要对URL做处理
     if error:
+        # 三种方式获取query param
+        '''
         from urllib.parse import unquote
         abs_url = unquote(request.url)
         redirect_uri = abs_url[abs_url.index('redirect_uri') + len('redirect_uri='):]
         if redirect_uri:
             action_uri += '?redirect_uri=' + quote(redirect_uri, safe='')
+        '''
+        '''
+        from urllib.parse import unquote, urlparse, urlencode
+        abs_url = unquote(request.url)
+        redirect_uri = urlencode(parse_qs(urlparse(abs_url).query), doseq=True)
+        if redirect_uri:
+            action_uri += '?' + redirect_uri
+        '''
+        from urllib.parse import urlparse
+        parse_result = urlparse(request.url)
+        query_param = parse_result.query
+        if query_param:
+            action_uri += '?' + query_param
+
     return render_template('login.html', error=error, redirect_uri=redirect_uri, action_uri=action_uri)
 
 
