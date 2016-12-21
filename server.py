@@ -30,6 +30,7 @@ __author__ = 'Orclover'
 # 10. 使用pygments进行代码高亮显示
 # 11. 发布文章时，支持两种格式——富文本编辑/Markdown
 # 13. flask-admin中的级联删除/显示问题，如对于评论内容的增删改查等等
+# 17. 优化文章类别页面（articles.htm），太丑
 
 
 from flask import Flask, request, session, g, redirect, url_for, abort, \
@@ -199,8 +200,6 @@ def login():
         user = User.objects(login_id=login_id).first()
         if not user:
             error = app.config['USER_NOT_EXISTS']
-            action_uri += '?redirect_uri=' + redirect_uri
-            action_uri = quote(action_uri)
         elif check_password_hash(user.password, password):
             '''
             user = User()
@@ -215,9 +214,18 @@ def login():
                 return redirect(url_for('index'))
         else:
             error = app.config['PASSWORD_NOT_MATCH']
-            action_uri += '?redirect_uri=' + redirect_uri
-            action_uri = quote(action_uri)
-            # TODO --bugfix-- 用户名/密码错误导致页面刷新后，URL中的参数redirect_uri被decode
+    # TODO 优化保证URL一致性的代码
+    elif request.method == 'GET':
+        # 为保证action中的URL一致
+        if redirect_uri:
+            action_uri += '?redirect_uri=' + quote(redirect_uri, safe='')
+    # 用户验证错误时，需要对URL做处理
+    if error:
+        from urllib.parse import unquote
+        abs_url = unquote(request.url)
+        redirect_uri = abs_url[abs_url.index('redirect_uri') + len('redirect_uri='):]
+        if redirect_uri:
+            action_uri += '?redirect_uri=' + quote(redirect_uri, safe='')
     return render_template('login.html', error=error, redirect_uri=redirect_uri, action_uri=action_uri)
 
 
@@ -249,8 +257,9 @@ def articles(page):
     start = (page - 1) * number_per_page
     limit = start + number_per_page
     tags = request.args.get('tags')
-    classification = request.args.get('classification')
-    if tags and classification:
+    classification_id = request.args.get('classification')
+    classification = None
+    if tags and classification_id:
         """ TODO 如何做到精确查询tags（多个）？
         tag_in_db_list = []
         if ',' in tags:
@@ -261,21 +270,23 @@ def articles(page):
         """
         tag_in_db = Tag.objects(name=tags).first()
         # 多条件查询，使用Q函数进行包装，通过|、&进行或、且操作
-        articles = Article.objects(Q(tags=tag_in_db) & Q(classification=classification)) \
+        articles = Article.objects(Q(tags=tag_in_db) & Q(classification=classification_id)) \
                        .order_by('-create_time')[start:limit]
-        count = Article.objects(Q(tags=tag_in_db) & Q(classification=classification)).count()
-    elif tags and not classification:
+        count = Article.objects(Q(tags=tag_in_db) & Q(classification=classification_id)).count()
+        classification = Classification.objects(id=classification_id)
+    elif tags and not classification_id:
         tag_in_db = Tag.objects(name=tags).first()
         articles = Article.objects(tags=tag_in_db).order_by('-create_time')[start:limit]
         count = Article.objects(tags=tag_in_db).count()
-    elif not tags and classification:
-        articles = Article.objects(classification=classification).order_by('-create_time')[start:limit]
-        count = Article.objects(classification=classification).count()
+    elif not tags and classification_id:
+        articles = Article.objects(classification=classification_id).order_by('-create_time')[start:limit]
+        count = Article.objects(classification=classification_id).count()
+        classification = Classification.objects(id=classification_id).first()
     else:
-        articles = Article.objects.order_by('-create_time')[start:limit]  # .order_by('-create_time')
+        articles = Article.objects.order_by('-create_time')[start:limit]
         count = Article.objects.count()
     page_obj = Pagination(page, number_per_page, count)
-    return render_template('articles.html', articles=articles, pagination=page_obj)
+    return render_template('articles.html', articles=articles, pagination=page_obj, classification=classification)
 
 # 装饰器
 from decorators import *

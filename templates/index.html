@@ -53,7 +53,7 @@
                         <!--
                         <a href="/articles?classification={{ article.classification.id }}">{{ article.classification.name }}</a>
                         -->
-                        <a href="{{ url_for('articles', classifications=article.classification.id) }}">{{ article.classification.name }}</a>
+                        <a href="{{ url_for('articles', classification=article.classification.id) }}">{{ article.classification.name }}</a>
                     </div>
                     <!-- 文章题目 -->
                     <div id="article-title">
