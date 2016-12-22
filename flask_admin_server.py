@@ -152,7 +152,7 @@ class CustomizedAdminIndexView(admin.AdminIndexView):
 
     @expose('/login/', methods=('GET', 'POST'))
     def login_view(self):
-        return self.render('login.html')
+        return redirect(url_for('login'))
 
     @expose('/logout/')
     def logout_view(self):
