@@ -36,7 +36,8 @@ __author__ = 'Orclover'
 
 
 from flask import Flask, request, session, g, redirect, url_for, abort, \
-    render_template, flash, make_response, Markup, json
+    render_template, flash, make_response, Markup, json, Blueprint
+
 
 # ODM mongoengine
 from flask_mongoengine import MongoEngine
@@ -63,6 +64,10 @@ from werkzeug.contrib.atom import AtomFeed
 
 # 创建应用
 app = Flask(__name__)
+# blueprints
+# @See: https://segmentfault.com/a/1190000002480266
+from blog import blog
+app.register_blueprint(blog, url_prefix='/blog')
 
 # 配置获取，本项目使用两种方式：
 # 更多，@See: http://www.pythondoc.com/flask/config.html
@@ -179,7 +184,7 @@ def register():
         # 如果需要，注册成功后帮助用户自动登录
         return redirect(url_for('index'))
 
-    return render_template('register.html')
+    return render_template('blog.register.html')
 
 
 # 接口
