@@ -37,6 +37,7 @@ class AuthModelView(ModelView):
 
 
 # 基类，为BaseView添加用户身份控制
+# TODO 该类并没有使用上，剔除
 class AuthBaseView(BaseView):
     # flask-admin + flask-login
     def is_accessible(self):

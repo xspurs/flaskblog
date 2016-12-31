@@ -33,8 +33,9 @@
             <a class="blog-nav-item {% block index_active %}{% endblock %}" href="{{ url_for('index') }}">首页</a>
             <a class="blog-nav-item {% block about_active %}{% endblock %}" href="{{ url_for('about_me') }}">关于</a>
             <a class="blog-nav-item {% block rss_active %}{% endblock %}" href="{{ url_for('rss') }}">RSS</a>
-            <form class="navbar-form navbar-right search-form" method="post" action="{{ url_for('search') }}">
-                <input id="index-query" type="text" name="query" class="form-control col-lg-8" placeholder="搜索">
+            <span id="search-icon" class="glyphicon glyphicon-search blog-nav-item"></span>
+            <form class="navbar-right" method="post" action="{{ url_for('search') }}">
+                <input id="index-query" type="text" name="query" class="form-control" placeholder="搜索">
             </form>
         </nav>
     </div>
@@ -76,11 +77,22 @@
             blurWidth = $indexQuery.outerWidth()
         $indexQuery.on({
             'focus': function() {
-                $(this).animate({width: focusWidth}, 'slow')
+                if($(window).width() > 768) {
+                    $(this).animate({width: focusWidth}, 'slow')
+                }
             },
             'blur': function() {
-                $(this).animate({width: blurWidth}, 'slow')
+                if($(window).width() > 768) {
+                    $(this).animate({width: blurWidth}, 'slow')
+                }
             }
+        })
+
+        // 搜索图标点击事件
+        var $searchForm = $('form.navbar-right')
+        $('#search-icon').on('click', function() {
+            $searchForm.css('display', 'inline-block')
+            $searchForm.show(1000)
         })
     })
 </script>

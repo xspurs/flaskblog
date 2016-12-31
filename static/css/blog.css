@@ -19,6 +19,26 @@ h6, .h6 {
     color: #333;
 }
 
+
+/*
+ * Search icon
+ */
+
+#search-icon {
+    display: none;
+}
+
+
+/*
+ * Search input
+ */
+
+#index-query {
+    margin: 5px 0 0 0;
+    height: 30px;
+}
+
+
 /*
  * Override Bootstrap's default container.
  */
@@ -26,6 +46,24 @@ h6, .h6 {
 @media (min-width: 1200px) {
     .container {
         width: 970px;
+    }
+}
+
+
+/*
+ * Media Query on phone
+ */
+
+@media (max-width: 768px) {
+    form.navbar-right {
+        display: none;
+    }
+    #search-icon {
+        display: inline-block;
+    }
+    /* search input width */
+    #index-query {
+        width: 100%;
     }
 }
 
@@ -52,6 +90,7 @@ h6, .h6 {
 .blog-nav-item:focus {
     color: #fff;
     text-decoration: none;
+    background-color: #0059b3;
 }
 
 /* Active state gets a caret at the bottom */
@@ -167,3 +206,5 @@ h6, .h6 {
 .blog-footer p:last-child {
     margin-bottom: 0;
 }
+
+
