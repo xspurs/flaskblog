@@ -60,10 +60,11 @@ h6, .h6 {
     }
     #search-icon {
         display: inline-block;
+	background-color: #428bca;
     }
     /* search input width */
     #index-query {
-        width: 100%;
+        width: 130px;
     }
 }
 
