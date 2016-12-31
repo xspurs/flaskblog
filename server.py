@@ -326,7 +326,8 @@ from decorators import *
 @view_increase_wrapper
 def article(article_id):
     logger.info("============================enter article pages===================================")
-    article = Article.objects(id=article_id).first()
+    # article = Article.objects(id=article_id).first()
+    article = g.get('article', None)
     # 使用flask.Markup进行转义
     article.content = Markup(markdown_it(article.content))
     # 指定使用lxml解析html，如不指定，默认使用html5lib

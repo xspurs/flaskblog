@@ -219,21 +219,12 @@
 
                 <!-- 评论输入区域
                 <div id="response-pannel">
-                    <div>
-                        <input id="comment-content" type="text" v-model="comment.content" placeholder="请输入评论内容"/>
-                    </div>
-                    <div>
-                        <input id="comment-username" type="text" v-model="comment.username" placeholder="请输入您的姓名"/>
-                    </div>
-                    <div>
-                        <input id="comment-useremail" type="text" v-model="comment.useremail" placeholder="请输入您的电子邮箱"/>
-                    </div>
-                    <div>
-                        <input id="comment-userlink" type="text" v-model="comment.userlink" placeholder="请输入您的个人网站"/>
-                    </div>
-                    <div>
-                        <button id="comment-commit" @click="postComment()">提交</button>
-                    </div>
+                    <textarea id="comment-content" class="form-control" type="text" v-model="comment.content" placeholder="请输入评论内容">
+                    </textarea>
+                    <input id="comment-username" type="text" class="form-control" v-model="comment.username" placeholder="请输入您的姓名"/>
+                    <input id="comment-useremail" type="text" class="form-control" v-model="comment.useremail" placeholder="请输入您的电子邮箱"/>
+                    <input id="comment-userlink" type="text" class="form-control" v-model="comment.userlink" placeholder="请输入您的个人网站"/>
+                    <button id="comment-commit" class="btn-primary" @click="postComment()">提交</button>
                 </div>
                 -->
             </div>
