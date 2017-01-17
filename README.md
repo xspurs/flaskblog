@@ -9,6 +9,7 @@ A blog written by python3 and flask, with the [MongoDB](https://www.mongodb.com/
 1. clone the source code:
 
    $ git clone https://github.com/xitongjiagoushi/flaskblog.git
+
    $ cd flaskblog
 
 2. checkout to the 'nologin' branch:
@@ -18,6 +19,7 @@ A blog written by python3 and flask, with the [MongoDB](https://www.mongodb.com/
 3. create and activate python virtual environment(optional):
 
    $ pyvenv virtualenv_3.5
+
    $ source virtualenv_3.5/bin/activate
 
 4. install requirements:
