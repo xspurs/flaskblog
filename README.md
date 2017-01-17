@@ -8,8 +8,10 @@ A blog written by python3 and flask, with the [MongoDB](https://www.mongodb.com/
 
 1. clone the source code:
 
+    ```shell
     $ git clone https://github.com/xitongjiagoushi/flaskblog.git
     $ cd flaskblog
+    ```
 
 2. checkout to the 'nologin' branch:
 
