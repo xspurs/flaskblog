@@ -1,8 +1,10 @@
 from math import ceil
 
+__author__ = 'Orclover'
 
 # 分页相关类
 class Pagination(object):
+
     def __init__(self, page, per_page, total_count):
         self.page = page
         self.per_page = per_page

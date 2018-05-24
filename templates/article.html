@@ -185,48 +185,52 @@
                             {{ loop(comment.sub_comments) }}
                         {% endif %}
                         -->
+                        <!--
                     {% else %}
                         暂无评论
                     {% endfor %}
+                        -->
                 </div>
 
 
                 <!-- 评论显示区域 -->
                 <!-- 异步加载评论区，通过Vue进行渲染
-                <div id="async-display-area">
-                    <div v-for="comment in comments">
-                        <div>
-                            <span>样例内容${ comment.user_info.name }</span>
-                            <span>${ comment.user_info.email }</span>
-                            <span>${ comment.user_info.link }</span>
-                        </div>
+                -->
+                {% if comment_model %}
+                    <div id="async-display-area">
+                        <div v-for="comment in comments">
+                            <div>
+                                <span>样例内容${ comment.user_info.name }</span>
+                                <span>${ comment.user_info.email }</span>
+                                <span>${ comment.user_info.link }</span>
+                            </div>
 
-                        <div class="parent-comment" v-if="comment.parent_comment">
-                            <div>引用${ comment.parent_comment.user_info.name }的发言：</div>
-                            <div>${ comment.parent_comment.content }</div>
-                        </div>
+                            <div class="parent-comment" v-if="comment.parent_comment">
+                                <div>引用${ comment.parent_comment.user_info.name }的发言：</div>
+                                <div>${ comment.parent_comment.content }</div>
+                            </div>
 
-                        <div>
-                            <span>${ comment.content }</span>
-                            <span><button @click="postComment('comment.id')">回复</button></span>
+                            <div>
+                                <span>${ comment.content }</span>
+                                <span><button @click="postComment('comment.id')">回复</button></span>
+                            </div>
+                        </div>
+                        <div v-else>
+                            暂无评论，快来抢沙发吧~
                         </div>
                     </div>
-                    <div v-else>
-                        暂无评论，快来抢沙发吧~
-                    </div>
-                </div>
-                -->
 
-                <!-- 评论输入区域
-                <div id="response-pannel">
-                    <textarea id="comment-content" class="form-control" type="text" v-model="comment.content" placeholder="请输入评论内容">
-                    </textarea>
-                    <input id="comment-username" type="text" class="form-control" v-model="comment.username" placeholder="请输入您的姓名"/>
-                    <input id="comment-useremail" type="text" class="form-control" v-model="comment.useremail" placeholder="请输入您的电子邮箱"/>
-                    <input id="comment-userlink" type="text" class="form-control" v-model="comment.userlink" placeholder="请输入您的个人网站"/>
-                    <button id="comment-commit" class="btn-primary" @click="postComment()">提交</button>
-                </div>
-                -->
+                    <!-- 评论输入区域
+                    -->
+                    <div id="response-pannel">
+                        <textarea id="comment-content" class="form-control" type="text" v-model="comment.content" placeholder="请输入评论内容">
+                        </textarea>
+                        <input id="comment-username" type="text" class="form-control" v-model="comment.username" placeholder="请输入您的姓名"/>
+                        <input id="comment-useremail" type="text" class="form-control" v-model="comment.useremail" placeholder="请输入您的电子邮箱"/>
+                        <input id="comment-userlink" type="text" class="form-control" v-model="comment.userlink" placeholder="请输入您的个人网站"/>
+                        <button id="comment-commit" class="btn-primary" @click="postComment()">提交</button>
+                    </div>
+                {% endif %}
             </div>
         </div>
     {% endif %}

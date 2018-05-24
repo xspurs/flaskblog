@@ -358,7 +358,7 @@ def article(article_id):
     # 是否需要按层级缩进显示目录
     need_indent = len({value for value in article_contents.values()}) != 1
 
-    return render_template('article.html', article=article, mode='release',
+    return render_template('article.html', article=article, mode='release', comment_model=app.config['COMMENT_MODEL'],
                            article_contents=article_contents, need_indent=need_indent)
 
 
@@ -466,7 +466,7 @@ def comments_corr_article(article_id):
     # comments = Article.objects(id=article_id)  # .only('comments')
     comments = Article.objects(id=article_id).only('comments').first().comments
     # TODO to_json()报错
-    comments.to_json()
+    # comments.to_json()
     for comment in comments:
         comment['user_info'] = User.objects(id=comment.user_info.id).first()
     return json.dumps(comments)

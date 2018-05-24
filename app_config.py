@@ -1,6 +1,6 @@
 # coding: utf-8
 
-__author__ = 'Orclover'
+__author__ = 'xspurs'
 
 '''
 configuration object
@@ -40,6 +40,10 @@ class Config(object):
     USER_NOT_EXISTS = '用户不存在'
     # password mismatch prompt
     PASSWORD_NOT_MATCH = '密码错误'
+
+    # project model switch
+    # use comment model(True) or not(False)
+    COMMENT_MODEL = True
 
 
 # development environment's configuraion

@@ -52,6 +52,16 @@ $ python server.py
 $ curl http://127.0.0.1:5000/
 ```
 
+## Tech used
+
+- [Flask](http://flask.pocoo.org/): a microframework for Python based on Werkzeug, Jinja 2 and good intentions.
+- [Vue.js](https://vuejs.org/): the progressive JavaScript framework.
+- [jQuery](https://jquery.com/): a fast, small, and feature-rich JavaScript library.
+- [MongoDB](https://www.mongodb.com/): an open-source document database that provides high performance, high availability, and automatic scaling.
+- [MongoEngine](http://mongoengine.org/): a Document-Object Mapper (think ORM, but for document databases) for working with MongoDB from Python.
+- [Bootstrap](https://getbootstrap.com/): an open source toolkit for developing with HTML, CSS, and JS.
+- [NicEdit](http://www.nicedit.com/): a Lightweight, Cross Platform, Inline Content Editor to allow easy editing of web site content on the fly in the browser.
+
 ## TODO List
 
 - [ ] Comment module

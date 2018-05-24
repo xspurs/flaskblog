@@ -1,6 +1,6 @@
 # coding: utf-8
 
-__author__ = 'Orclover'
+__author__ = 'xspurs'
 
 """
 compositing with flask-admin
