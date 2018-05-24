@@ -3,3 +3,4 @@
 test_flaskr.py
 schema.sql
 before.txt
+*.log

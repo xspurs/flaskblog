@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}
+    查询结果
+{% endblock %}
+
+<!-- CSS/JS Beginning -->
+{% block head %}
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/github-markdown.css') }}">
+    <script src="{{ url_for('static', filename='js/lib/vue.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/lib/jquery-1.11.2.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/lib/vue-strap.js') }}"></script>
+{% endblock %}
+<!-- CSS/JS Ending -->
+
+{% block body %}
+    <div id="app">
+        <ul>
+            {% for article in articles %}
+                <li><a href="{{ url_for('article', article_id=article.id) }}">{{ article.title }}</a></li>
+            {% else %}
+                什么都没有搜索到<a href="{{ url_for('index') }}">回到首页</a>
+            {% endfor %}
+        </ul>
+        <!-- 分页页码 -->
+        {% if pagination and pagination.pages > 1 %}
+            <div class="pagination-wrap">
+                <ul class="pagination">
+                    {% for page in pagination.iter_pages() %}
+                        {% if page %}
+                            <li {% if page == pagination.page %}class="active"{% endif %}>
+                                <a href="{{ url_for_other_pages(page) }}">{{ page }}</a>
+                            </li>
+                        {% else %}
+                            <li><span class=ellipsis>…</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if pagination.has_next %}
+                        <li><a href="{{ url_for_other_pages(pagination.page + 1) }}">&raquo;</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block foot %}
+
+{% endblock %}

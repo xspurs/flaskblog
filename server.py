@@ -15,6 +15,9 @@ __author__ = 'Orclover'
 # 3. 修改文章详情页面，主要在与子级评论和父级评论的渲染/展示
 # 12. 文章内容编辑
 # 3. classification的增删改查
+# 14. 添加404页面
+# 15. 添加日期格式转换
+# 16. 使用gunicorn部署，改造server.py结构
 
 # TODO todo-list
 # 1. 页面样式与页面风格
@@ -22,49 +25,67 @@ __author__ = 'Orclover'
 # 4. 文章的搜索功能，根据tags/classification
 # 6. 评论文章/评论评论时，应该由jQuery去添加元素，还是将整个的重新加载
 # 7. 纯接口，取回数据后，返回HTTP Status 200
-# 8. 发布评论时的前后端校
+# 8. 发布评论时的前后端校验
 # 9. 发布文章时的前后端校验
-# 10. 使用pygments进行代码高亮显
-# 11. 发布文章时，支持两种格式——富文本编辑/Markdown示
+# 10. 使用pygments进行代码高亮显示
+# 11. 发布文章时，支持两种格式——富文本编辑/Markdown
 # 13. flask-admin中的级联删除/显示问题，如对于评论内容的增删改查等等
-# 14. ?
+# 17. 优化文章类别页面（articles.htm），太丑
+# 19. 移动端页面适配
+# 20. 必要位置的日志
 
 
 from flask import Flask, request, session, g, redirect, url_for, abort, \
-    render_template, flash, make_response, Markup, json
+    render_template, flash, make_response, Markup, json, Blueprint
+
 
 # ODM mongoengine
 from flask_mongoengine import MongoEngine
-from model import *
-# import markdown
-import misaka
 
 import flask_login
-# from hashlib import sha256
 from werkzeug.security import generate_password_hash, check_password_hash
 # wtforms
 from wtforms import form, fields, validators
 
+# 日志模块
+import logging.config
+from os import path
+
+log_file_path = path.join(path.dirname(path.abspath(__file__)), 'logging.conf')
+logging.config.fileConfig(log_file_path)
+# TODO 使用的日志移入配置项，根据不同环境使用不同logger
+logger = logging.getLogger("root")
+
+# 分页功能
+# TODO 能否通过装饰器实现
+from pagination import Pagination
+# RSS
+from werkzeug.contrib.atom import AtomFeed
+
 # 创建应用
 app = Flask(__name__)
+# blueprints
+# @See: https://segmentfault.com/a/1190000002480266
+from blog import blog
+app.register_blueprint(blog, url_prefix='/blog')
 
-# 从配置文件中读取配置
-app.config.from_pyfile('app.cfg')
+# 配置获取，本项目使用两种方式：
+# 更多，@See: http://www.pythondoc.com/flask/config.html
+# http://www.pythondoc.com/flask/patterns/distribute.html#distribute-deployment
+# 1. 从配置文件中读取配置
+# app.config.from_pyfile('app.conf')
+# 2. 从配置对象中读取配置(推荐)
+app.config.from_object('app_config.Development')
 
-# 不太明白这个的作用，看文档？！
-app.config.from_envvar('FLASKR_SETTINGS', silent=True)
 
-# flask-admin初始化，已放入__main__中
-# admin = Admin(app, name='博客管理后台', template_mode='bootstrap3')
-
-# 创建数据库连接
+# 创建数据库实例
 db = MongoEngine(app)
-# Or
-# db = MongoEngine()
-# db.init_app(app)
 
+# TODO 将beautifulsoup从server.py中摘除，作为单独服务使用
+from bs4 import BeautifulSoup
 
 # flask_login相关，考虑从本文件中摘除
+# @See:http://flask-login.readthedocs.io/en/latest
 # 开始
 login_manager = flask_login.LoginManager(app)
 
@@ -75,6 +96,7 @@ def user_loader(id):
     TODO 提示用户不存在，在验证密码前的controller中做
     '''
     from bson import ObjectId
+
     if not ObjectId.is_valid(id):
         return
     user = User.objects(id=id).first()
@@ -101,159 +123,6 @@ def request_loader(request):
 
     return user
 '''
-# 结束
-
-# flask_admin相关，考虑从本文件中摘除
-# 开始
-import flask_admin as admin
-# from flask_admin.form import rules
-from flask_admin.contrib.mongoengine import ModelView
-from flask_admin import BaseView, expose
-
-
-# 基类，为ModelView添加用户身份控制
-class AuthModelView(ModelView):
-    # flask-admin + flask-login
-    def is_accessible(self):
-        # 官方文档调用的是方法，如下：（错误，is_authenticated是current_user的一个属性）
-        # return flask_login.current_user.is_authenticated()
-        # flask_login.current_user.type == 1 为自定义的管理员属性，只有管理员用户才可以进入管理端进行操作
-        return flask_login.current_user.is_authenticated and flask_login.current_user.type == 1
-
-    def inaccessible_callback(self, name, **kwargs):
-        # TODO 根据不同的情况，给予用户不同的提示（如未登录用户提示用户需要登录，已登录但非管理员用户提示用户身份错误等)
-        '''
-        if not flask_login.current_user.is_authenticated:
-            return redirect(url_for('login', next=request.url))
-        elif flask_login.current_user.type != 1:
-            return redirect(url_for('wrong principal', next=request.url))
-        '''
-        return redirect(url_for('login', next=request.url))
-
-
-# 基类，为BaseView添加用户身份控制
-class AuthBaseView(BaseView):
-    # flask-admin + flask-login
-    def is_accessible(self):
-        # 官方文档调用的是方法，如下：（错误，is_authenticated是current_user的一个属性）
-        # return flask_login.current_user.is_authenticated()
-        return flask_login.current_user.is_authenticated
-
-    def inaccessible_callback(self, name, **kwargs):
-        return redirect(url_for('login', next=request.url))
-
-
-class UserView(AuthModelView):
-    column_filters = ['login_id']
-    create_modal, edit_modal = True, True
-
-    column_searchable_list = ('login_id', 'name', 'email')
-
-
-class ClassificationView(AuthModelView):
-    column_searchable_list = ('name',)
-    # 以模态框(modal)形式弹出编辑
-    edit_modal, create_modal = True, True
-
-
-class ArticleView(AuthModelView):
-    column_searchable_list = ('title', 'abstract')
-    column_exclude_list = ('coments', 'tags',)
-    # 禁止对文章进行编辑和新建
-    # can_create, can_edit = False, False
-
-    # 允许再页面内部编辑
-    # column_editable_list = ('',)
-
-    # 单页条数
-    page_size = 10
-
-    '''
-    form_ajax_refs = {
-        ''
-    }
-    '''
-    # 2016-06-27
-    # 在基础上扩展，碉堡
-    @expose('/edit')
-    def edit_view(self):
-        article_id = request.args.get('id')
-        article = Article.objects(id=article_id).first()
-        classifications = Classification.objects.order_by('+name')
-        return self.render('write.html', classifications=classifications, article=article)
-
-    @expose('/create')
-    def create_view(self):
-        classifications = Classification.objects.order_by('+name')
-        return self.render('write.html', classifications=classifications)
-
-    # 文章预览
-    @expose('/preview', methods=('POST',))
-    def preview(self):
-        ''' Ajax请求，无论同步或者异步，都不能正确跳转；通过form.submit()实现
-        article = request.get_json(force=True)
-        return self.render('article.html', article=article, mode='preview')
-        '''
-        classification = Classification.objects(id=request.form.get('classification')).first()
-        article = {
-            'title': request.form.get('title'),
-            'content': request.form.get('content'),
-            'abstract': request.form.get('abstract'),
-            'classification': classification,
-        }
-        return self.render('article.html', article=article, mode='preview')
-
-
-class CommentView(AuthModelView):
-    column_searchable_list = ('content',)
-
-
-'''
-在自定义create_view和edit_view后，无需再自定义View
-不过这是一种思路，可#总结
-class WriteArticleView(AuthBaseView):
-    @expose('/')
-    def index(self):
-        classifications = Classification.objects.order_by('+name')
-        return self.render('write.html', classifications=classifications)
-'''
-
-'''
-class EditArticleView(AuthBaseView):
-    @expose('/')
-    def index(self):
-        articles = Article.objects.order_by('-create_time')
-        # articles_admin.html模板文件已经删除，因为已经没有必要了
-        return self.render('articles_admin.html', articles=articles)
-        # return redirect(url_for('articles_all_show'))
-
-    @expose('/article/edit/<string:article_id>', methods=('GET',))
-    def article_edit(self):
-        article = Article.objects(id=article_id).first()
-        classifications = Classification.objects.order_by('+name')
-        return render_template('write.html', classifications=classifications, article=article)
-'''
-
-
-# 自定义控制
-class CustomizedAdminIndexView(admin.AdminIndexView):
-    @expose('/')
-    def index(self):
-        if not flask_login.current_user.is_authenticated or flask_login.current_user.type != 1:
-            return redirect(url_for('.login_view'))
-        return super(CustomizedAdminIndexView, self).index()
-
-    @expose('/login/', methods=('GET', 'POST'))
-    def login_view(self):
-        return self.render('login.html')
-
-    @expose('/logout/')
-    def logout_view(self):
-        flask_login.logout_user()
-        return redirect(url_for('.index'))
-
-
-# 结束
 
 
 @login_manager.unauthorized_handler
@@ -273,13 +142,26 @@ def close_db(error):
 
 # 页面
 # 博客首页
-@app.route('/')
-def index():
+@app.route('/', defaults={'page': 1}, methods=['GET'])
+@app.route('/page-<int:page>', methods=['GET'])
+def index(page):
+    start = (page - 1) * number_per_page
+    limit = page * number_per_page
+    count = Article.objects.count()
     classifications = Classification.objects.order_by('+name')
-    article = Article.objects.order_by('-create_time').first()
-    if article:  # 文章不存在时，不进行转换
+    articles = Article.objects.order_by('-create_time')[start:limit]
+    pagination = Pagination(page, number_per_page, count)
+    # 添加最新发表文章列表，取最新发表的五篇文章
+    # TODO 最近文章不需要，因为首页就是按最近发表排序的，可以考虑根据业务切换为其他条件的文章，如热度等
+    '''
+    recent_articles = Article.objects.order_by('-create_time').limit(5)
+    if recent_articles:  # 文章不存在时，不进行转换
+        article = recent_articles[0]
+        # articles[0].content = Markup(misaka.html(articles[0].content))
         article.content = Markup(misaka.html(article.content))
-    return render_template('index.html', classifications=classifications, article=article)
+    '''
+    return render_template('index.html', classifications=classifications,
+                           articles=articles, recent_articles=None, pagination=pagination)
 
 
 # 接口
@@ -302,7 +184,7 @@ def register():
         # 如果需要，注册成功后帮助用户自动登录
         return redirect(url_for('index'))
 
-    return render_template('register.html')
+    return render_template('blog.register.html')
 
 
 # 接口
@@ -310,6 +192,9 @@ def register():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
+    redirect_uri = request.args.get('redirect_uri')
+    action_uri = request.url_rule.rule
+    from urllib.parse import quote_plus
     if request.method == 'POST':
         is_remember = request.form.get('remember', False)
         login_id = request.form.get('loginid')
@@ -320,8 +205,7 @@ def login():
         # 2. 使用werkzeug.security中的摘要算法进行加密
         user = User.objects(login_id=login_id).first()
         if not user:
-            # TODO 提示用户不存在
-            pass
+            error = app.config['USER_NOT_EXISTS']
         elif check_password_hash(user.password, password):
             '''
             user = User()
@@ -330,25 +214,44 @@ def login():
             '''
             # remember参数默认为False，设置为True后可通过Cookie记录用户登录状态
             flask_login.login_user(user, remember=is_remember)
-            # 经测试，query_param中没有next参数
-            # next = request.args.get('next')
-            return redirect(url_for('index'))
-
-        # TODO 跳转到登录失败页面
-        return '登录失败'
-
-        '''
-        if request.form.get('username') != app.config['USERNAME']:
-            error = 'Invalid username'
-        elif request.form.get('password') != app.config['PASSWORD']:
-            error = 'Invalid password'
+            if redirect_uri:
+                return redirect(redirect_uri)
+            else:
+                return redirect(url_for('index'))
         else:
-            session['logged_in'] = True
-            flash('You were logged in')
-            return redirect(url_for('index'))
+            error = app.config['PASSWORD_NOT_MATCH']
+    # TODO 优化保证URL一致性的代码
+    elif request.method == 'GET':
+        # 为保证action中的URL一致
+        if redirect_uri:
+            action_uri += '?redirect_uri=' + quote_plus(redirect_uri)
+    # 用户验证错误时，需要对URL做处理
+    if error:
+        # 三种方式获取query param
+        # 通过这三个example可以熟悉下urllib.parse方法
         '''
-    # return render_template('signin.html', error=error)
-    return render_template('login.html', error=error)
+        from urllib.parse import unquote
+        abs_url = unquote(request.url)
+        redirect_uri = abs_url[abs_url.index('redirect_uri') + len('redirect_uri='):]
+        if redirect_uri:
+            action_uri += '?redirect_uri=' + quote(redirect_uri, safe='')
+        '''
+        '''
+        from urllib.parse import unquote, urlparse, urlencode
+        abs_url = unquote(request.url)
+        redirect_uri = urlencode(parse_qs(urlparse(abs_url).query), doseq=True)
+        if redirect_uri:
+            action_uri += '?' + redirect_uri
+        '''
+        from urllib.parse import urlparse
+        parse_result = urlparse(request.url)
+        query_param = parse_result.query
+        if query_param:
+            action_uri += '?' + query_param
+            # OR
+            # action_uri = '?'.join([action_uri, query_param])
+
+    return render_template('login.html', error=error, action_uri=action_uri)
 
 
 # 接口
@@ -372,11 +275,16 @@ def protected():
 
 # 页面
 # 全部文章列表
-@app.route('/articles', methods=['GET'])
-def articles_all_show():
+@app.route('/articles', defaults={'page': 1}, methods=['GET'])
+@app.route('/articles/page-<int:page>', methods=['GET'])
+def articles(page):
+    # 分页相关
+    start = (page - 1) * number_per_page
+    limit = start + number_per_page
     tags = request.args.get('tags')
-    classification = request.args.get('classification')
-    if tags and classification:
+    classification_id = request.args.get('classification')
+    classification = None
+    if tags and classification_id:
         """ TODO 如何做到精确查询tags（多个）？
         tag_in_db_list = []
         if ',' in tags:
@@ -387,72 +295,71 @@ def articles_all_show():
         """
         tag_in_db = Tag.objects(name=tags).first()
         # 多条件查询，使用Q函数进行包装，通过|、&进行或、且操作
-        articles = Article.objects(Q(tags=tag_in_db) & Q(classification=classification)).order_by('-create_time')
-    elif tags and not classification:
+        articles = Article.objects(Q(tags=tag_in_db) & Q(classification=classification_id)) \
+                       .order_by('-create_time')[start:limit]
+        count = Article.objects(Q(tags=tag_in_db) & Q(classification=classification_id)).count()
+        classification = Classification.objects(id=classification_id)
+    elif tags and not classification_id:
         tag_in_db = Tag.objects(name=tags).first()
-        articles = Article.objects(tags=tag_in_db).order_by('-create_time')
-    elif not tags and classification:
-        articles = Article.objects(classification=classification).order_by('-create_time')
+        articles = Article.objects(tags=tag_in_db).order_by('-create_time')[start:limit]
+        count = Article.objects(tags=tag_in_db).count()
+    elif not tags and classification_id:
+        articles = Article.objects(classification=classification_id).order_by('-create_time')[start:limit]
+        count = Article.objects(classification=classification_id).count()
+        classification = Classification.objects(id=classification_id).first()
     else:
-        articles = Article.objects.order_by('-create_time')
-    return render_template('articles.html', articles=articles)
+        articles = Article.objects.order_by('-create_time')[start:limit]
+        count = Article.objects.count()
+    page_obj = Pagination(page, number_per_page, count)
+    return render_template('articles.html', articles=articles, pagination=page_obj, classification=classification)
 
-# 接口
-# 分类文章列表
-# 将接口合并到/articles,method=['GET']中
-"""
-@app.route('/articles/<string:classification_id>', methods=['GET'])
-def articles_classify_show(classification_id):
-    # ReferenceField
-    # 使用如下查询方式
-    articles = Article.objects(classification=classification_id)
-    return render_template('articles.html', articles=articles)
-"""
+# 装饰器
+# TODO 方法装饰器 －> 类装饰器（参考flask自身的@app.route）
+from decorators import *
 
 
 # 页面
 # 文章详情
+# 文章生成目录，方便查看，可以使用goose或html5lib(最终选型：beautifulsoup4，使用lxml做解析)
+# TODO 将生成目录功能抽取出来
 @app.route('/article/<string:article_id>')
+@view_increase_wrapper
 def article(article_id):
+    logger.info("============================enter article pages===================================")
+    # article = Article.objects(id=article_id).first()
+    article = g.get('article', None)
     # 使用flask.Markup进行转义
-    corresponding_article = Article.objects(id=article_id).first()
-    corresponding_article.content = Markup(misaka.html(corresponding_article.content))
-    return render_template('article.html', article=corresponding_article, mode='release')
+    article.content = Markup(markdown_it(article.content))
+    # 指定使用lxml解析html，如不指定，默认使用html5lib
+    soup = BeautifulSoup(article.content, 'lxml')
+    # 为每个<h'x'>标签添加id，以便需要时进行定位
+    from re import compile
 
+    a_template = '<a href="#{id}">{value}</a>'
+    # 使用collections.OrderedDict，以有序字典存储文章目录及对应缩进数
+    from collections import OrderedDict
 
-# 页面
-# 文章预览
-''' 已移入flask-admin中
-@app.route('/article/preview', methods=['POST'])
-def article_preview():
-    # 使用flask.Markup进行转义
-    # corresponding_article = Article.objects(id=article_id).first()
-    # corresponding_article.content = Markup(misaka.html(corresponding_article.content))
-    # return render_template('article.html', article=corresponding_article, mode='preview')
-    article = request.get_json(force=True)
-    # classification = Classification.objects(id=article.get('classification')).first()
-    # article[kkk]
-    return render_template('article.html', article=article, mode='preview')
-'''
+    article_contents = OrderedDict()
+    for index, element in enumerate(soup.find_all(compile('^h[1-9]{1}$'))):
+        element['id'] = index
+        # 目录及对应缩进数
+        article_contents.setdefault(Markup(a_template.format(id=index, value=element.string)),
+                                    int(element.name[1:]) - 1)
+        # 为每个<h'x'>标签添加permalink图标(¶)
+        html_tag_a = soup.new_tag('a', **{'class': 'headerlink', 'href': '#' + str(index)})
+        html_tag_a.string = '¶'
+        element.append(html_tag_a)
 
+    # 将修饰过到内容转换回来
+    soup_string = str(soup.body.contents)
+    # 去除转换过程中生成的的多余换行符 TODO 查看beautifulsoup API文档，能否在转换过程中不生成多余字符
+    # article.content = Markup(soup_string[1:len(soup_string) - 1].replace(r", '\n\n',", "").replace(r", '\n'", ""))
+    article.content = Markup(soup_string[1:len(soup_string) - 1].replace(r", '\n',", "").replace(r", '\n'", ""))
+    # 是否需要按层级缩进显示目录
+    need_indent = len({value for value in article_contents.values()}) != 1
 
-# 页面
-# 新建文章
-'''
-* 现已移入管理端
-@app.route('/article', methods=['GET'])
-def article_create():
-    classifications = Classification.objects.order_by('+name')
-    return render_template('write.html', classifications=classifications)
-
-# 页面
-# 修改文章
-@app.route('/article/edit/<string:article_id>', methods=['GET'])
-def article_edit(article_id):
-    article = Article.objects(id=article_id).first()
-    classifications = Classification.objects.order_by('+name')
-    return render_template('write.html', classifications=classifications, article=article)
-'''
+    return render_template('article.html', article=article, mode='release',
+                           article_contents=article_contents, need_indent=need_indent)
 
 
 # 页面
@@ -476,7 +383,8 @@ def comment_post():
     # ==========
     """
     data = request.get_json(force=True)
-    user = User(name=data.get('username'), email=data.get('useremail'), link=data.get('userlink'), login_id='default_login_id', password='default_password').save()
+    user = User(name=data.get('username'), email=data.get('useremail'), link=data.get('userlink'),
+                login_id='default_login_id', password='default_password').save()
     if data.get('parent_id'):
         parent_comment = Comment.objects(id=data.get('parent_id')).first()
         comment = Comment(content=data.get('content'), display_flag=app.config['DEFAULT_DISPLAY_FLAG'], user_info=user,
@@ -489,14 +397,7 @@ def comment_post():
                           user_info=user).save()  # cascade=True
         article.comments.append(comment)
         article.save()
-    return '评论成功', 200
-    # TODO 返回HTTP状态码
-    """
-    return make_response(status=200)
-    response = make_response()
-    response.status=200
-    return response
-    """
+    return make_response('评论成功', 200)
 
 
 # 接口
@@ -504,7 +405,7 @@ def comment_post():
 @app.route('/comment/<string:comment_id>', methods=['DELETE'])
 def comment_delete(comment_id):
     Comment.objects(id=comment_id).first().delete()
-    return '', 200
+    return make_response('', 200)
 
 
 # 接口
@@ -512,12 +413,11 @@ def comment_delete(comment_id):
 @app.route('/article/<string:article_id>', methods=['DELETE'])
 def article_delete(article_id):
     Article.objects(id=article_id).first().delete()
-    return '', 200
+    return make_response('', 200)
 
 
 # 接口
 # 发布/保存文章
-# TODO 发布的文章需要支持markdown格式
 @app.route('/article', methods=['POST', 'GET'])
 def article_post():
     # 获取表单数据
@@ -526,12 +426,8 @@ def article_post():
     tags = request.form.get('tags')
     classification_id = request.form.get('classification')
     abstract = request.form.get('abstract')
-    # content = markdown.markdown(request.form.get('content'), extensions=['markdown.extensions.extra'])
-    # content = misaka.html(request.form.get('content'))
     # 保存数据库时，不保存HTML格式文本；在读取后，显示前，做HTML格式处理
     content = request.form.get('content')
-    # 通过model中的默认值去添加，在此不再生成
-    # create_time = datetime.datetime.now()
 
     '''
     移除文章中的Tags字段
@@ -547,7 +443,7 @@ def article_post():
     if not id:
         article_posted = Article(title=title, classification=classification_doc, abstract=abstract,
                                  content=content).save()
-        return redirect('/article/' + str(article_posted.id))
+        return url_for('article', article_post.id)
     else:
         Article.objects(id=id).update_one(title=title,
                                           classification=classification_doc, abstract=abstract,
@@ -560,16 +456,7 @@ def article_post():
         article_putted.content = content
         article_putted.reload()
         """
-        return redirect('/article/' + id)
-
-
-# Bootstrap Example
-@app.route('/example')
-def example():
-    classifications = Classification.objects
-    article = Article.objects.order_by('-create_time').first()
-    article.content = Markup(misaka.html(article.content))
-    return render_template('new.html', classifications=classifications, article=article)
+        return url_for('article', id)
 
 
 # 接口
@@ -578,28 +465,140 @@ def example():
 def comments_corr_article(article_id):
     # comments = Article.objects(id=article_id)  # .only('comments')
     comments = Article.objects(id=article_id).only('comments').first().comments
+    # TODO to_json()报错
     comments.to_json()
     for comment in comments:
         comment['user_info'] = User.objects(id=comment.user_info.id).first()
     return json.dumps(comments)
 
 
+# 接口
+# 搜索
+@app.route('/search', methods=['POST'])
+def search():
+    if request.method != 'POST':
+        return redirect(url_for('index'))
+    query_condition = request.form.get('query', None)
+    if query_condition:
+        return redirect(url_for('results', query_condition=query_condition))
+    else:
+        return redirect(url_for('index'))
+
+
+# 页面
+# 搜索结果
+@app.route('/q/<string:query_condition>', defaults={'page': 1})
+@app.route('/q/<string:query_condition>/page-<int:page>')
+def results(query_condition, page):
+    # 按文章题目搜索
+    # @See: http://docs.mongoengine.org/guide/querying.html#limiting-and-skipping-results
+    start = (page - 1) * number_per_page
+    limit = page * number_per_page
+    articles = Article.objects(title__contains=query_condition).order_by('-create_time')[start:limit]
+    count = Article.objects(title__contains=query_condition).count()
+    page_obj = Pagination(page, number_per_page, count)
+    return render_template('results.html', articles=articles, pagination=page_obj)
+
+
+# 接口
+# RSS
+@app.route('/rss')
+def rss():
+    feed = AtomFeed('IT技术博客', feed_url=request.url, url=request.url_root)
+    articles = Article.objects.order_by('-create_time')  # 将全部文章检出，而不只检出第一页 [0:number_per_page]
+    # python3中，已将urlparse.urljoin合并入urllib包中，变为urllib.parse.urljoin
+    from urllib.parse import urljoin
+
+    for article in articles:
+        feed.add(article.title, markdown_it(article.content), content_type='html',
+                 author='博客老板', url=urljoin(request.url_root, url_for('article', article_id=article.id)),
+                 updated=article.create_time)
+    return feed.get_response()
+
+
+# 404页面
+@app.errorhandler(404)
+def page_not_found(error):
+    return make_response(render_template('404.html', title='404'), 404)
+
+
+# 自定义模板过滤器
+# 处理时间格式
+@app.template_filter('format_date')
+def format_datetime_filter(input_value, _format='%Y-%m-%d %H:%M:%S'):
+    if hasattr(input_value, 'strftime'):
+        return input_value.strftime(_format)
+    return input_value
+
+
+# 统一处理request，相当于postHandler，可以看下源代码
+# @See: http://www.tuicool.com/articles/YBbeM33
+@app.after_request
+def app_after_request(response):
+    # 为静态资源添加缓存
+    if request.endpoint != 'static':
+        return response
+    response.cache_control.max_age = 1200  # 'no-cache'
+    # 直接通过这种方式制定的expire无效
+    # response.expire = 'Fri, 31 Dec 1999 16:00:00 GMT'
+    # 有效
+    # response.headers['Expire'] = 'Fri, 31 Dec 1999 16:00:00 GMT'
+    # response.headers['Cache-Control'] = 'no-cache'
+    return response
+
+
+# 分页URL生成方法
+# 通过@app.template_global将该方法注册到jinja模板中
+@app.template_global('url_for_other_pages')
+def url_for_other_pages(page):
+    """
+    两种类型的参数：
+    request.view_args   REST风格的参数
+    request.args        query parameter风格的参数
+    由于本博客未统一使用某种风格，因此两种参数均需带上
+    """
+    view_args = request.view_args.copy()
+    view_args['page'] = page
+    for k, v in request.args.items():
+        view_args[k] = v
+    return url_for(request.endpoint, **view_args)
+
+# flask-admin相关
+# 开始
+from flask_admin_server import *
+
+# 初始化flask-admin
+def create_flask_admin():
+    import flask_admin
+
+    admin_instance = flask_admin.Admin(app, name='博客管理后台', template_mode='bootstrap3',
+                                       index_view=CustomizedAdminIndexView(),
+                                       base_template='customized_master.html')
+    admin_instance.add_view(UserView(User, name="用户管理"))
+    admin_instance.add_view(ClassificationView(Classification, name="分类管理"))
+    admin_instance.add_view(ArticleView(Article, name="文章管理"))
+    admin_instance.add_view(CommentView(Comment, name="评论管理"))
+    return admin_instance
+
+
+admin = create_flask_admin()
+# 结束
+
+
+# markdown处理
+def markdown_it(content):
+    if content:
+        import misaka
+        # about extents, @See: http://misaka.61924.nl/#extensions
+        return misaka.html(content, extensions=('tables', ))
+    else:
+        raise ValueError('content param is None.')
+
+
+# 分页页面中，每页显示的数据条
+number_per_page = app.config['NUMBER_PER_PAGE']
 
 # 启动服务
+# 在使用gunicorn作为应用服务器启动时，该判断为false，if中的语句不执行
 if __name__ == '__main__':
-    # flask-admin相关我用接口发表文章
-    # 开始
-    admin = admin.Admin(app, name='博客管理后台', template_mode='bootstrap3', index_view=CustomizedAdminIndexView(),
-                        base_template='customized_master.html')  # base_template='....html'
-    admin.add_view(UserView(User, name="用户管理"))
-    admin.add_view(ClassificationView(Classification, name="分类管理"))
-    admin.add_view(ArticleView(Article, name="文章管理"))
-    admin.add_view(CommentView(Comment, name="评论管理"))
-    '''
-    admin.add_view(WriteArticleView(name='写文章'))  # , endpoint='lalala'))
-    admin.add_view(EditArticleView(name='文章列表'))
-    admin.add_view()
-    '''
-    # 结束
-
-    app.run(host=app.config['APP_HOST'], port=app.config['APP_PORT'])  # host='192.168.32.66', port=5000
+    app.run(host=app.config['APP_HOST'], port=app.config['APP_PORT'])
