@@ -14,7 +14,7 @@ class Config(object):
     TESTING = True
     SECRET_KEY = 'development key'
 
-    # mongoengine configuration
+    # mongodb connection configuration
     MONGODB_DB = 'flaskblog'
     MONGODB_HOST = '127.0.0.1'
     MONGODB_PORT = 27017
