@@ -1,6 +1,6 @@
 # flaskblog
 
-[![Build Status](https://travis-ci.org/xspurs/flaskblog.svg?branch=master)](https://travis-ci.org/xspurs/flaskblog) [![Coveage](https://img.shields.io/codecov/c/github/xspurs/flaskblog/master.svg)](https://codecov.io/gh/xspurs/flaskblog)
+[![Build Status](https://travis-ci.org/xspurs/flaskblog.svg?branch=master)](https://travis-ci.org/xspurs/flaskblog) [![codecov](https://codecov.io/gh/xspurs/flaskblog/branch/master/graph/badge.svg)](https://codecov.io/gh/xspurs/flaskblog)
 
 A blog written by python3 and flask, with the [MongoDB](https://www.mongodb.com/) as the backend database.
 
